@@ -27,7 +27,7 @@ Post: `/user/updateUser`
 
 Reponse:
 
-|参数名称|类型|描述| |:-:|:-:|:-:| |code|Int|状态码|
+|参数名称|类型|描述| |:-:|:-:|:-:| |code|Int|状态码| |reason|String|理由 可为空|
 
 Post `/user/deleteUser`
 
@@ -35,7 +35,7 @@ Post `/user/deleteUser`
 
 Response:
 
-|参数名称|类型|描述| |:-:|:-:|:-:| |code|Int|状态码|
+|参数名称|类型|描述| |:-:|:-:|:-:| |code|Int|状态码| |reason|String|理由 可为空|
 
 Post: `/admin/qureyHistory`
 
@@ -43,7 +43,7 @@ Post: `/admin/qureyHistory`
 
 Response:
 
-|参数名称|类型|描述| |:-:|:-:|:-:| |code|Int|状态码| |history|String|所有针对该用户的操作记录，以字典返回|
+|参数名称|类型|描述| |:-:|:-:|:-:| |code|Int|状态码| |history|String|所有针对该用户的操作记录|
 
 Post: `/admin/promoteAdmin`
 

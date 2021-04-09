@@ -1,14 +1,40 @@
+/*
+ * QNotified - An Xposed module for QQ/TIM
+ * Copyright (C) 2019-2021 dmca@ioctl.cc
+ * https://github.com/ferredoxin/QNotified
+ *
+ * This software is non-free but opensource software: you can redistribute it
+ * and/or modify it under the terms of the GNU Affero General Public License
+ * as published by the Free Software Foundation; either
+ * version 3 of the License, or any later version and our eula as published
+ * by ferredoxin.
+ *
+ * This software is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+ * Affero General Public License for more details.
+ *
+ * You should have received a copy of the GNU Affero General Public License
+ * and eula along with this software.  If not, see
+ * <https://www.gnu.org/licenses/>
+ * <https://github.com/ferredoxin/QNotified/blob/master/LICENSE.md>.
+ */
+
 buildscript {
     repositories {
         jcenter()
+        maven { url 'https://kotlin.bintray.com/ktor' }
+        mavenLocal()
+        mavenCentral()
+        jcenter()
+        maven { url 'https://maven.aliyun.com/nexus/content/groups/public/' }
     }
 
     dependencies {
-        classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:$kotlin_version"
+        classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:1.4.32"
         classpath 'com.github.jengelman.gradle.plugins:shadow:2.0.4'
     }
 }
-
 apply plugin: 'kotlin'
 apply plugin: 'application'
 apply plugin: 'java'
@@ -16,7 +42,7 @@ apply plugin: 'java'
 group 'nil.nadph.authsrv'
 version '0.0.1'
 
-mainClassName = "nil.nadph.authsrv.Main"
+mainClassName = "nil.nadph.authsrv.MainKt"
 
 apply plugin: 'com.github.johnrengelman.shadow'
 
@@ -27,20 +53,22 @@ shadowJar {
 }
 
 sourceSets {
-    main.kotlin.srcDirs = main.java.srcDirs = ['src']
-    test.kotlin.srcDirs = test.java.srcDirs = ['test']
-    main.resources.srcDirs = ['resources']
-    test.resources.srcDirs = ['testresources']
+    main {
+        java { srcDir 'src/java' }
+        resources { srcDir 'src/resource' }
+    }
 }
 
 repositories {
-    mavenLocal()
-    jcenter()
     maven { url 'https://kotlin.bintray.com/ktor' }
+    mavenLocal()
+    mavenCentral()
+    jcenter()
+    maven { url 'https://maven.aliyun.com/nexus/content/groups/public/' }
 }
 
 dependencies {
-    implementation "org.jetbrains.kotlin:kotlin-stdlib-jdk8:$kotlin_version"
+    implementation "org.jetbrains.kotlin:kotlin-stdlib-jdk8:1.4.30"
     implementation "io.ktor:ktor-server-netty:$ktor_version"
     implementation "ch.qos.logback:logback-classic:$logback_version"
     implementation "io.ktor:ktor-server-core:$ktor_version"
@@ -50,5 +78,22 @@ dependencies {
     implementation "io.ktor:ktor-client-apache:$ktor_version"
     implementation "io.ktor:ktor-client-serialization:$ktor_version"
     implementation "io.ktor:ktor-client-gson:$ktor_version"
+    implementation group: 'mysql', name: 'mysql-connector-java', version: '8.0.23'
+    implementation group: 'com.zaxxer', name: 'HikariCP', version: '4.0.3'
+    implementation group: 'commons-io', name: 'commons-io', version: '2.6'
+    // https://mvnrepository.com/artifact/com.alibaba/fastjson
+    implementation group: 'com.alibaba', name: 'fastjson', version: '1.2.75'
+    // https://mvnrepository.com/artifact/org.jetbrains/annotations
+    implementation group: 'org.jetbrains', name: 'annotations', version: '20.1.0'
     testImplementation "io.ktor:ktor-server-tests:$ktor_version"
+}
+dependencies {
+    compile 'mysql:mysql-connector-java:8.0.23'
+    compile 'com.zaxxer:HikariCP:4.0.3'
+    compile group: 'com.alibaba', name: 'fastjson', version: '1.2.75'
+    compile group: 'commons-io', name: 'commons-io', version: '2.6'
+    // https://mvnrepository.com/artifact/org.jetbrains/annotations
+    compile group: 'org.jetbrains', name: 'annotations', version: '20.1.0'
+    compile group: 'org.apache.logging.log4j', name: 'log4j-api', version: '2.13.3'
+    compile group: 'org.apache.logging.log4j', name: 'log4j-core', version: '2.13.3'
 }
