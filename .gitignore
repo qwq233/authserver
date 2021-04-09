@@ -26,3 +26,12 @@ hs_err_pid*
 .vscode
 app/build
 build
+/app/.project
+/.project
+
+config.json
+.idea/
+/app/.classpath
+/.settings/org.eclipse.buildship.core.prefs
+/app/.settings/org.eclipse.buildship.core.prefs
+app/bin/
