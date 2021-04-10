@@ -35,3 +35,5 @@ config.json
 /.settings/org.eclipse.buildship.core.prefs
 /app/.settings/org.eclipse.buildship.core.prefs
 app/bin/
+docs/response.json
+app/src/src.iml

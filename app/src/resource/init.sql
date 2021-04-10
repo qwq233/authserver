@@ -25,7 +25,7 @@ create table user
     uin        int primary key,
     status     int  not null,
     reason     text not null,
-    lastUpdate date not null
+    lastUpdate datetime not null
 );
 create table admin
 (

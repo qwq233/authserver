@@ -62,6 +62,7 @@ fun main() {
                 call.respondText("Hello, world!", ContentType.Text.Plain)
             }
             post("/user/updateUser") {
+                val regex = Regex("^[0-9A-Za-z_]+\$")
                 val readReq = JSONObject.parseObject(call.receiveText())
                 val req = updateRequest(
                     readReq.getIntValue("uin"),
@@ -70,19 +71,26 @@ fun main() {
                     readReq.getString("reason")
                 )
                 if (readReq != null) {
-                    when (db.updateUser(req.uin, req.status, req.token, req.reason)) {
-                        0 -> call.respondText(
-                            "{\"code\": 200, \"reason\": \"\"}",
+                    if (!regex.matches(req.token)) {
+                        call.respondText(
+                            "{\"code\": 403,\"reason\": \"illegal string\"}",
                             ContentType("application", "json")
                         )
-                        1 -> call.respondText(
-                            "{\"code\": 403,\"reason\": \"wrong token\"}",
-                            ContentType("application", "json")
-                        )
-                        else -> call.respondText(
-                            "{\"code\": 403,\"reason\": \"unknown error\"}\n",
-                            ContentType("application", "json")
-                        )
+                    } else {
+                        when (db.updateUser(req.uin, req.status, req.token, req.reason)) {
+                            0 -> call.respondText(
+                                "{\"code\": 200, \"reason\": \"\"}",
+                                ContentType("application", "json")
+                            )
+                            1 -> call.respondText(
+                                "{\"code\": 403,\"reason\": \"wrong token\"}",
+                                ContentType("application", "json")
+                            )
+                            else -> call.respondText(
+                                "{\"code\": 403,\"reason\": \"unknown error\"}",
+                                ContentType("application", "json")
+                            )
+                        }
                     }
                 } else {
                     call.respondText(
@@ -99,7 +107,7 @@ fun main() {
                         db.queryUser(req),
                         ContentType("application", "json")
                     )
-                }else {
+                } else {
                     call.respondText(
                         "{\"code\": 403,\"reason\": \"empty post message\"}\n",
                         ContentType("application", "json")

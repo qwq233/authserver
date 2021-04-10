@@ -27,13 +27,13 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.Reader;
 import java.nio.charset.StandardCharsets;
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class Config {
 
 
-    private static final Logger logger = LogManager.getLogger(Config.class);
+    private static final Logger logger = LoggerFactory.getLogger(Config.class);
 
     /**
      * @param fileName 文件路径
@@ -53,7 +53,7 @@ public class Config {
             return jsonStr;
         } catch (IOException e) {
             e.printStackTrace();
-            logger.error(e);
+            logger.error(String.valueOf(e));
             return null;
         }
     }
