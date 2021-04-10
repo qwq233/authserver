@@ -18,7 +18,7 @@ Post: `/user/queryUser`
 
 Response:
 
-|参数名称|类型|描述| |:-:|:-:|:-:| |code|Int|状态码| |status|Int|黑白名单状态| |datetime|String|时间|
+|参数名称|类型|描述| |:-:|:-:|:-:| |code|Int|状态码| |status|Int|黑白名单状态| |reason|String|理由| |lastUpdate|String|时间|
 
 Post: `/user/updateUser`
 

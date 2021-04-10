@@ -69,17 +69,39 @@ fun main() {
                     readReq.getString("token"),
                     readReq.getString("reason")
                 )
-                when (db.updateUser(req.uin, req.status, req.token, req.reason)) {
-                    0 -> call.respondText(
-                        "{\"code\": 200, \"reason\": \"\"}",
+                if (readReq != null) {
+                    when (db.updateUser(req.uin, req.status, req.token, req.reason)) {
+                        0 -> call.respondText(
+                            "{\"code\": 200, \"reason\": \"\"}",
+                            ContentType("application", "json")
+                        )
+                        1 -> call.respondText(
+                            "{\"code\": 403,\"reason\": \"wrong token\"}",
+                            ContentType("application", "json")
+                        )
+                        else -> call.respondText(
+                            "{\"code\": 403,\"reason\": \"unknown error\"}\n",
+                            ContentType("application", "json")
+                        )
+                    }
+                } else {
+                    call.respondText(
+                        "{\"code\": 403,\"reason\": \"empty post message\"}\n",
                         ContentType("application", "json")
                     )
-                    1 -> call.respondText(
-                        "{\"code\": 403,\"reason\": \"wrong token\"}",
+                }
+            }
+            post("/user/queryUser") {
+                val readReq = JSONObject.parseObject(call.receiveText())
+                if (readReq != null) {
+                    val req = readReq.getIntValue("uin")
+                    call.respondText(
+                        db.queryUser(req),
                         ContentType("application", "json")
                     )
-                    else -> call.respondText(
-                        "{\"code\": 403,\"reason\": \"unknown error\"}\n",
+                }else {
+                    call.respondText(
+                        "{\"code\": 403,\"reason\": \"empty post message\"}\n",
                         ContentType("application", "json")
                     )
                 }

@@ -21,10 +21,12 @@
  */
 package nil.nadph.authsrv;
 
+import com.alibaba.fastjson.JSONObject;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.util.Map;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.jetbrains.annotations.NotNull;
@@ -55,6 +57,7 @@ public class Database {
      * @param uin    QQ号
      * @param status 状态
      * @param reason 理由
+     * @return 0 success 1 token not-exist 2 unknown error
      * @author gao_cai_sheng
      */
     public int updateUser(int uin, int status, @NotNull String token,
@@ -92,6 +95,33 @@ public class Database {
             logger.error(ex);
             ex.printStackTrace();
             return 2;
+        }
+    }
+
+    /**
+     * @author gao_cai_sheng
+     * @param uin QQ号
+     * @return -> README.md
+     */
+    public String queryUser(int uin){
+        try(PreparedStatement query = db.prepareStatement("select * from user where uin = ?")){
+            query.setInt(1,uin);
+            ResultSet rs = query.executeQuery();
+            if(rs.next()){
+                JSONObject resp = new JSONObject();
+                resp.put("code",200);
+                resp.put("status",rs.getInt(2));
+                resp.put("reason",rs.getString(3));
+                resp.put("lastUpdate",rs.getString(4));
+                System.out.println(rs.getString(4));
+                return resp.toJSONString();
+            }else{
+                return "{\"code\": 200,\"status\": 0,\"reason\": \"\",\"lastUpdate\": \"\"}\n";
+            }
+        }catch (SQLException ex) {
+            logger.error(ex);
+            ex.printStackTrace();
+            return "{\"code\": 403,\"status\": 0,\"reason\": \"unknown error\",\"lastUpdate\": \"\"}";
         }
     }
 }
