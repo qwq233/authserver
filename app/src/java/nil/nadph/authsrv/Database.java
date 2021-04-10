@@ -82,6 +82,7 @@ public class Database {
                     insert.setInt(1, uin);
                     insert.setInt(2, status);
                     insert.setString(3, reason);
+                    insert.executeUpdate();
                 }
                 log.setInt(1, uin);
                 log.setString(2, token);
