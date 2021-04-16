@@ -32,6 +32,7 @@ import io.ktor.routing.*
 import io.ktor.server.engine.*
 import io.ktor.server.netty.*
 import nil.nadph.authsrv.data.DatabaseConfig
+import nil.nadph.authsrv.data.user.deleteRequest
 import nil.nadph.authsrv.data.user.updateRequest
 
 
@@ -112,6 +113,36 @@ fun main() {
                         "{\"code\": 403,\"reason\": \"empty post message\"}\n",
                         ContentType("application", "json")
                     )
+                }
+            }
+            post("/user/deleteUser") {
+                val regex = Regex("^[0-9A-Za-z_]+\$")
+                val readReq = JSONObject.parseObject(call.receiveText())
+                val req = deleteRequest(
+                    readReq.getIntValue("uin"),
+                    readReq.getString("token"),
+                    readReq.getString("reason")
+                )
+                if (!regex.matches(req.token)) {
+                    call.respondText(
+                        "{\"code\": 403,\"reason\": \"illegal string\"}",
+                        ContentType("application", "json")
+                    )
+                } else {
+                    when (db.deleteUser(req.uin, req.token, req.reason)) {
+                        0 -> call.respondText(
+                            "{\"code\": 200, \"reason\": \"\"}",
+                            ContentType("application", "json")
+                        )
+                        1 -> call.respondText(
+                            "{\"code\": 403,\"reason\": \"wrong token\"}",
+                            ContentType("application", "json")
+                        )
+                        else -> call.respondText(
+                            "{\"code\": 403,\"reason\": \"unknown error\"}",
+                            ContentType("application", "json")
+                        )
+                    }
                 }
             }
         }

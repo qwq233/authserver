@@ -26,7 +26,6 @@ import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
-import java.util.Map;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.jetbrains.annotations.NotNull;
@@ -62,15 +61,15 @@ public class Database {
      */
     public int updateUser(int uin, int status, @NotNull String token,
         String reason) {
-        try (
-            PreparedStatement query = db.prepareCall("select * from user where uin = ?",
-                ResultSet.TYPE_SCROLL_SENSITIVE, ResultSet.CONCUR_UPDATABLE);
-            PreparedStatement insert = db.prepareStatement(
-                "insert into user (uin, status, reason, lastUpdate) values(?,?,?,CURDATE())");
-            PreparedStatement log = db.prepareStatement(
-                "insert into log(uin, operator, reason, date) values (?,(select nickname from admin where token = ?),?,CURDATE())")
-        ) {
-            if (validate(token)) {
+        if (validate(token)) {
+            try (
+                PreparedStatement query = db.prepareCall("select * from user where uin = ?",
+                    ResultSet.TYPE_SCROLL_SENSITIVE, ResultSet.CONCUR_UPDATABLE);
+                PreparedStatement insert = db.prepareStatement(
+                    "insert into user (uin, status, reason, lastUpdate) values(?,?,?,CURDATE())");
+                PreparedStatement log = db.prepareStatement(
+                    "insert into log(uin, operator,operation, reason, date) values (?,(select nickname from admin where token = ?),'updateUser',?,CURDATE())")
+            ) {
                 query.setInt(1, uin);
                 ResultSet rss = query.executeQuery();
                 if (rss.next()) {
@@ -89,40 +88,66 @@ public class Database {
                 log.setString(3, reason);
                 log.executeUpdate();
                 return 0;
-            } else {
-                return 1;
+            } catch (SQLException ex) {
+                logger.error(ex);
+                ex.printStackTrace();
+                return 2;
             }
-        } catch (SQLException ex) {
-            logger.error(ex);
-            ex.printStackTrace();
-            return 2;
+        } else {
+            return 1;
         }
     }
 
     /**
-     * @author gao_cai_sheng
      * @param uin QQ号
      * @return -> README.md
+     * @author gao_cai_sheng
      */
-    public String queryUser(int uin){
-        try(PreparedStatement query = db.prepareStatement("select * from user where uin = ?")){
-            query.setInt(1,uin);
+    public String queryUser(int uin) {
+        try (PreparedStatement query = db.prepareStatement("select * from user where uin = ?")) {
+            query.setInt(1, uin);
             ResultSet rs = query.executeQuery();
-            if(rs.next()){
+            if (rs.next()) {
                 JSONObject resp = new JSONObject();
-                resp.put("code",200);
-                resp.put("status",rs.getInt(2));
-                resp.put("reason",rs.getString(3));
-                resp.put("lastUpdate",rs.getString(4));
-                System.out.println(rs.getString(4));
+                resp.put("code", 200);
+                resp.put("status", rs.getInt(2));
+                resp.put("reason", rs.getString(3));
+                resp.put("lastUpdate", rs.getString(4));
                 return resp.toJSONString();
-            }else{
+            } else {
                 return "{\"code\": 200,\"status\": 0,\"reason\": \"\",\"lastUpdate\": \"\"}\n";
             }
-        }catch (SQLException ex) {
+        } catch (SQLException ex) {
             logger.error(ex);
             ex.printStackTrace();
             return "{\"code\": 403,\"status\": 0,\"reason\": \"unknown error\",\"lastUpdate\": \"\"}";
+        }
+    }
+
+    /**
+     * @param uin    QQ号
+     * @param token  管理员token
+     * @param reason 理由
+     * @return 0 success 1 token not-exist 2 unknown error
+     */
+    public int deleteUser(int uin, String token, String reason) {
+        if (validate(token)) {
+            try (PreparedStatement delete = db.prepareStatement("delete from user where uin = ?");
+                PreparedStatement log = db.prepareStatement(
+                    "insert into log(uin, operator,operation, reason, date) values (?,(select nickname from admin where token = ?),'deleteUser',?,CURDATE())")) {
+                delete.setInt(1, uin);
+                delete.executeUpdate();
+                log.setInt(1, uin);
+                log.setString(2, token);
+                log.setString(3, reason);
+                return 0;
+            } catch (SQLException throwable) {
+                logger.error(throwable);
+                throwable.printStackTrace();
+                return 2;
+            }
+        } else {
+            return 1;
         }
     }
 }

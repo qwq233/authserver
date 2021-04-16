@@ -20,29 +20,10 @@
  * <https://github.com/ferredoxin/QNotified/blob/master/LICENSE.md>.
  */
 
-create table user
-(
-    uin        int primary key,
-    status     int      not null,
-    reason     text     not null,
-    lastUpdate datetime not null
-);
-create table admin
-(
-    id       int primary key auto_increment,
-    token    text not null,
-    nickname text not null,
-    creator  text,
-    role     int  not null,
-    reason   text
-);
-create table log
-(
-    id        int primary key auto_increment,
-    uin       int      not null,
-    operator  text     not null,
-    operation text     not null,
-    reason    text     not null,
-    date      datetime not null
-);
+package nil.nadph.authsrv.data.user
 
+data class deleteRequest(
+    val uin: Int,
+    val token: String,
+    val reason: String
+)
