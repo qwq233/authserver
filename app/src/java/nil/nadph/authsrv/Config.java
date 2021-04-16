@@ -21,6 +21,10 @@
  */
 package nil.nadph.authsrv;
 
+import com.alibaba.fastjson.JSON;
+import com.alibaba.fastjson.JSONObject;
+import com.zaxxer.hikari.HikariConfig;
+import com.zaxxer.hikari.HikariDataSource;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
@@ -34,13 +38,12 @@ public class Config {
 
 
     private static final Logger logger = LoggerFactory.getLogger(Config.class);
+    private String jsonStr;
 
     /**
      * @param fileName 文件路径
-     * @author gao_cai_sheng
      */
-    public String readJsonFile(String fileName) {
-        String jsonStr;
+    public Config(String fileName) {
         File jsonFile = new File(fileName);
         try (Reader reader = new InputStreamReader(new FileInputStream(jsonFile),
             StandardCharsets.UTF_8)) {
@@ -50,11 +53,24 @@ public class Config {
                 sb.append((char) ch);
             }
             jsonStr = sb.toString();
-            return jsonStr;
         } catch (IOException e) {
             e.printStackTrace();
             logger.error(String.valueOf(e));
-            return null;
         }
+    }
+
+    public HikariDataSource getDataSource() {
+        new JSONObject();
+        JSONObject jsonObject = JSON.parseObject(jsonStr);
+        HikariConfig config = new HikariConfig();
+        config.setJdbcUrl(
+            "jdbc:mysql://" + jsonObject.getString("ip") + ":" + jsonObject.getString("port")
+                + "/qn_auth?useUnicode=true&characterEncoding=utf8&useSSL=false");
+        config.setUsername(jsonObject.getString("username"));
+        config.setPassword(jsonObject.getString("password"));
+        config.addDataSourceProperty("cachePrepStmts", "true");
+        config.addDataSourceProperty("prepStmtCacheSize", "300");
+        config.addDataSourceProperty("prepStmtCacheSqlLimit", "2048");
+        return new HikariDataSource(config);
     }
 }

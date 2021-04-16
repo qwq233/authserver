@@ -22,8 +22,6 @@
 package nil.nadph.authsrv
 
 import com.alibaba.fastjson.JSONObject
-import com.zaxxer.hikari.HikariConfig
-import com.zaxxer.hikari.HikariDataSource
 import io.ktor.application.*
 import io.ktor.http.*
 import io.ktor.request.*
@@ -31,7 +29,7 @@ import io.ktor.response.*
 import io.ktor.routing.*
 import io.ktor.server.engine.*
 import io.ktor.server.netty.*
-import nil.nadph.authsrv.data.DatabaseConfig
+import nil.nadph.authsrv.data.Response
 import nil.nadph.authsrv.data.user.deleteRequest
 import nil.nadph.authsrv.data.user.updateRequest
 
@@ -40,22 +38,9 @@ import nil.nadph.authsrv.data.user.updateRequest
  * @author gao_cai_sheng
  */
 fun main() {
-    val cf = Config()
-    val js = JSONObject.parseObject(cf.readJsonFile("/home/qwq233/Project/nauth/config.json"))
-    val getConfig = DatabaseConfig(
-        js.getString("ip") + ":" + js.getString("port"),
-        js.getString("username"),
-        js.getString("password")
-    )
-    val config = HikariConfig()
-    config.jdbcUrl =
-        "jdbc:mysql://${getConfig.ip}/qn_auth?useUnicode=true&characterEncoding=utf8&useSSL=false"
-    config.username = getConfig.username
-    config.password = getConfig.password
-    config.addDataSourceProperty("cachePrepStmts", "true")
-    config.addDataSourceProperty("prepStmtCacheSize", "300")
-    config.addDataSourceProperty("prepStmtCacheSqlLimit", "2048")
-    val dbSource = HikariDataSource(config)
+    val cf = Config("./config.json")
+    val resp = Response()
+    val dbSource = cf.dataSource
     val db = Database(dbSource.connection)
     val server = embeddedServer(Netty, 10810) {
         routing {
@@ -63,7 +48,6 @@ fun main() {
                 call.respondText("Hello, world!", ContentType.Text.Plain)
             }
             post("/user/updateUser") {
-                val regex = Regex("^[0-9A-Za-z_]+\$")
                 val readReq = JSONObject.parseObject(call.receiveText())
                 val req = updateRequest(
                     readReq.getIntValue("uin"),
@@ -72,30 +56,13 @@ fun main() {
                     readReq.getString("reason")
                 )
                 if (readReq != null) {
-                    if (!regex.matches(req.token)) {
-                        call.respondText(
-                            "{\"code\": 403,\"reason\": \"illegal string\"}",
-                            ContentType("application", "json")
-                        )
-                    } else {
-                        when (db.updateUser(req.uin, req.status, req.token, req.reason)) {
-                            0 -> call.respondText(
-                                "{\"code\": 200, \"reason\": \"\"}",
-                                ContentType("application", "json")
-                            )
-                            1 -> call.respondText(
-                                "{\"code\": 403,\"reason\": \"wrong token\"}",
-                                ContentType("application", "json")
-                            )
-                            else -> call.respondText(
-                                "{\"code\": 403,\"reason\": \"unknown error\"}",
-                                ContentType("application", "json")
-                            )
-                        }
-                    }
+                    call.respondText(
+                        db.updateUser(req.uin, req.status, req.token, req.reason),
+                        ContentType("application", "json")
+                    )
                 } else {
                     call.respondText(
-                        "{\"code\": 403,\"reason\": \"empty post message\"}\n",
+                        resp.resp(400),
                         ContentType("application", "json")
                     )
                 }
@@ -110,41 +77,31 @@ fun main() {
                     )
                 } else {
                     call.respondText(
-                        "{\"code\": 403,\"reason\": \"empty post message\"}\n",
+                        resp.resp(400),
                         ContentType("application", "json")
                     )
                 }
             }
             post("/user/deleteUser") {
-                val regex = Regex("^[0-9A-Za-z_]+\$")
                 val readReq = JSONObject.parseObject(call.receiveText())
                 val req = deleteRequest(
                     readReq.getIntValue("uin"),
                     readReq.getString("token"),
                     readReq.getString("reason")
                 )
-                if (!regex.matches(req.token)) {
+                if (readReq != null) {
                     call.respondText(
-                        "{\"code\": 403,\"reason\": \"illegal string\"}",
+                        db.deleteUser(req.uin, req.token, req.reason),
                         ContentType("application", "json")
                     )
                 } else {
-                    when (db.deleteUser(req.uin, req.token, req.reason)) {
-                        0 -> call.respondText(
-                            "{\"code\": 200, \"reason\": \"\"}",
-                            ContentType("application", "json")
-                        )
-                        1 -> call.respondText(
-                            "{\"code\": 403,\"reason\": \"wrong token\"}",
-                            ContentType("application", "json")
-                        )
-                        else -> call.respondText(
-                            "{\"code\": 403,\"reason\": \"unknown error\"}",
-                            ContentType("application", "json")
-                        )
-                    }
+                    call.respondText(
+                        resp.resp(400),
+                        ContentType("application", "json")
+                    )
                 }
             }
+
         }
     }
     server.start(wait = true)

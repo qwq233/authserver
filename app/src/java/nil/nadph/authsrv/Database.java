@@ -21,11 +21,12 @@
  */
 package nil.nadph.authsrv;
 
-import com.alibaba.fastjson.JSONObject;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import kotlin.text.Regex;
+import nil.nadph.authsrv.data.Response;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.jetbrains.annotations.NotNull;
@@ -34,19 +35,27 @@ public class Database {
 
     private static final Logger logger = LogManager.getLogger(Database.class);
     private final Connection db;
+    private final Response resp;
 
     public Database(Connection db) {
         this.db = db;
+        this.resp = new Response();
     }
 
     public boolean validate(String token) {
-        try (PreparedStatement pstmt = db.prepareStatement("select * from admin where token = ?")) {
-            pstmt.setString(1, token);
-            ResultSet admin = pstmt.executeQuery();
-            return admin.next();
-        } catch (SQLException ex) {
-            logger.error(ex);
-            ex.printStackTrace();
+        Regex regex = new Regex("^[0-9A-Za-z_]+$");
+        if (regex.matches(token)) {
+            try (PreparedStatement pstmt = db
+                .prepareStatement("select * from admin where token = ?")) {
+                pstmt.setString(1, token);
+                ResultSet admin = pstmt.executeQuery();
+                return admin.next();
+            } catch (SQLException ex) {
+                logger.error(ex);
+                ex.printStackTrace();
+                return false;
+            }
+        } else {
             return false;
         }
     }
@@ -56,10 +65,9 @@ public class Database {
      * @param uin    QQ号
      * @param status 状态
      * @param reason 理由
-     * @return 0 success 1 token not-exist 2 unknown error
      * @author gao_cai_sheng
      */
-    public int updateUser(int uin, int status, @NotNull String token,
+    public String updateUser(int uin, int status, @NotNull String token,
         String reason) {
         if (validate(token)) {
             try (
@@ -74,8 +82,8 @@ public class Database {
                 ResultSet rss = query.executeQuery();
                 if (rss.next()) {
                     rss.first();
-                    rss.updateInt(2, status);
-                    rss.updateString(3, reason);
+                    rss.updateInt("status", status);
+                    rss.updateString("reason", reason);
                     rss.updateRow();
                 } else {
                     insert.setInt(1, uin);
@@ -87,14 +95,14 @@ public class Database {
                 log.setString(2, token);
                 log.setString(3, reason);
                 log.executeUpdate();
-                return 0;
+                return resp.resp(200);
             } catch (SQLException ex) {
                 logger.error(ex);
                 ex.printStackTrace();
-                return 2;
+                return resp.resp(500);
             }
         } else {
-            return 1;
+            return resp.resp(401);
         }
     }
 
@@ -108,19 +116,15 @@ public class Database {
             query.setInt(1, uin);
             ResultSet rs = query.executeQuery();
             if (rs.next()) {
-                JSONObject resp = new JSONObject();
-                resp.put("code", 200);
-                resp.put("status", rs.getInt(2));
-                resp.put("reason", rs.getString(3));
-                resp.put("lastUpdate", rs.getString(4));
-                return resp.toJSONString();
+                return resp.resp(200, rs.getInt("uin"), rs.getString("reason"),
+                    rs.getString("lastUpdate"));
             } else {
                 return "{\"code\": 200,\"status\": 0,\"reason\": \"\",\"lastUpdate\": \"\"}\n";
             }
         } catch (SQLException ex) {
             logger.error(ex);
             ex.printStackTrace();
-            return "{\"code\": 403,\"status\": 0,\"reason\": \"unknown error\",\"lastUpdate\": \"\"}";
+            return resp.resp(500);
         }
     }
 
@@ -128,9 +132,9 @@ public class Database {
      * @param uin    QQ号
      * @param token  管理员token
      * @param reason 理由
-     * @return 0 success 1 token not-exist 2 unknown error
+     * @return 返回值
      */
-    public int deleteUser(int uin, String token, String reason) {
+    public String deleteUser(int uin, String token, String reason) {
         if (validate(token)) {
             try (PreparedStatement delete = db.prepareStatement("delete from user where uin = ?");
                 PreparedStatement log = db.prepareStatement(
@@ -140,14 +144,14 @@ public class Database {
                 log.setInt(1, uin);
                 log.setString(2, token);
                 log.setString(3, reason);
-                return 0;
+                return resp.resp(200);
             } catch (SQLException throwable) {
                 logger.error(throwable);
                 throwable.printStackTrace();
-                return 2;
+                return resp.resp(500);
             }
         } else {
-            return 1;
+            return resp.resp(401);
         }
     }
 }
