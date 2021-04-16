@@ -25,7 +25,7 @@ Post: `/user/updateUser`
 |参数名称|类型|描述| |:-:|:-:|:-:| |code|Int|状态码| |uin|String|QQ号| |status|Int|黑白名单状态|
 |token|String|管理员token| |reason|String|理由 不可为空|
 
-Reponse:
+Response:
 
 |参数名称|类型|描述| |:-:|:-:|:-:| |code|Int|状态码| |reason|String|理由 可为空|
 
@@ -48,7 +48,7 @@ Response:
 Post: `/admin/promoteAdmin`
 
 |参数名称|类型|描述| |:-:|:-:|:-:| |uin|String|待添加的管理员token| |nickname|String|待添加的管理员名称|
-|permissions|Int|权限| |token|String|管理员token| |reason|String|理由 可为空|
+|token|String|管理员token| |reason|String|理由 可为空|
 
 Response:
 |参数名称|类型|描述| |:-:|:-:|:-:| |code|Int|状态码|
@@ -59,4 +59,4 @@ Post: `/admin/revokeAdmin`
 
 Response:
 
-|参数名称|类型|描述| |:-:|:-:|:-:| |code|Int|状态码|
+|参数名称|类型|描述| |:-:|:-:|:-:| |code|Int|状态码| |reason|String|理由 可为空|
