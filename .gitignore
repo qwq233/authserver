@@ -37,3 +37,5 @@ config.json
 app/bin/
 docs/response.json
 app/src/src.iml
+
+logs/*

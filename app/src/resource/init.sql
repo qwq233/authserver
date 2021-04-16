@@ -29,12 +29,13 @@ create table user
 );
 create table admin
 (
-    id       int primary key auto_increment,
-    token    text not null,
-    nickname text not null,
-    creator  text,
-    role     int  not null,
-    reason   text
+    id         int primary key auto_increment,
+    token      text     not null,
+    nickname   text     not null,
+    creator    text,
+    role       int      not null,
+    reason     text,
+    lastUpdate datetime not null
 );
 create table log
 (

@@ -30,8 +30,6 @@ import io.ktor.routing.*
 import io.ktor.server.engine.*
 import io.ktor.server.netty.*
 import nil.nadph.authsrv.data.Response
-import nil.nadph.authsrv.data.user.deleteRequest
-import nil.nadph.authsrv.data.user.updateRequest
 
 
 /**
@@ -48,16 +46,15 @@ fun main() {
                 call.respondText("Hello, world!", ContentType.Text.Plain)
             }
             post("/user/updateUser") {
-                val readReq = JSONObject.parseObject(call.receiveText())
-                val req = updateRequest(
-                    readReq.getIntValue("uin"),
-                    readReq.getIntValue("status"),
-                    readReq.getString("token"),
-                    readReq.getString("reason")
-                )
-                if (readReq != null) {
+                val req = JSONObject.parseObject(call.receiveText())
+                if (req != null) {
                     call.respondText(
-                        db.updateUser(req.uin, req.status, req.token, req.reason),
+                        db.updateUser(
+                            req.getIntValue("uin"),
+                            req.getIntValue("status"),
+                            req.getString("token"),
+                            req.getString("reason")
+                        ),
                         ContentType("application", "json")
                     )
                 } else {
@@ -68,11 +65,10 @@ fun main() {
                 }
             }
             post("/user/queryUser") {
-                val readReq = JSONObject.parseObject(call.receiveText())
-                if (readReq != null) {
-                    val req = readReq.getIntValue("uin")
+                val req = JSONObject.parseObject(call.receiveText())
+                if (req != null) {
                     call.respondText(
-                        db.queryUser(req),
+                        db.queryUser(req.getIntValue("uin")),
                         ContentType("application", "json")
                     )
                 } else {
@@ -83,15 +79,14 @@ fun main() {
                 }
             }
             post("/user/deleteUser") {
-                val readReq = JSONObject.parseObject(call.receiveText())
-                val req = deleteRequest(
-                    readReq.getIntValue("uin"),
-                    readReq.getString("token"),
-                    readReq.getString("reason")
-                )
-                if (readReq != null) {
+                val req = JSONObject.parseObject(call.receiveText())
+                if (req != null) {
                     call.respondText(
-                        db.deleteUser(req.uin, req.token, req.reason),
+                        db.deleteUser(
+                            req.getIntValue("uin"),
+                            req.getString("token"),
+                            req.getString("reason")
+                        ),
                         ContentType("application", "json")
                     )
                 } else {
@@ -100,6 +95,26 @@ fun main() {
                         ContentType("application", "json")
                     )
                 }
+            }
+            post("/admin/promoteAdmin") {
+                val req = JSONObject.parseObject(call.receiveText())
+                if (req != null) {
+                    call.respondText(
+                        db.promoteAdmin(
+                            req.getString("desttoken"),
+                            req.getString("nickname"),
+                            req.getString("reason"),
+                            req.getString("token")
+                        ),
+                        ContentType("application", "json")
+                    )
+                } else {
+                    call.respondText(
+                        resp.resp(400),
+                        ContentType("application", "json")
+                    )
+                }
+
             }
 
         }

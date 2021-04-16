@@ -76,9 +76,7 @@ Response:
 Post: `/admin/promoteAdmin`
 
 |参数名称|类型|描述|
-|:-:|:-:|:-:|
-|uin|String|待添加的管理员token|
-|nickname|String|待添加的管理员名称|
+|:-:|:-:|:-:| |desttoken|String|待添加的管理员token| |nickname|String|待添加的管理员名称|
 |token|String|管理员token|
 |reason|String|理由 可为空|
 

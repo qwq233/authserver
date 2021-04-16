@@ -22,6 +22,7 @@
 package nil.nadph.authsrv;
 
 import java.sql.Connection;
+import java.sql.Date;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -74,9 +75,9 @@ public class Database {
                 PreparedStatement query = db.prepareCall("select * from user where uin = ?",
                     ResultSet.TYPE_SCROLL_SENSITIVE, ResultSet.CONCUR_UPDATABLE);
                 PreparedStatement insert = db.prepareStatement(
-                    "insert into user (uin, status, reason, lastUpdate) values(?,?,?,CURDATE())");
+                    "insert into user (uin, status, reason, lastUpdate) values(?,?,?,now())");
                 PreparedStatement log = db.prepareStatement(
-                    "insert into log(uin, operator,operation, reason, date) values (?,(select nickname from admin where token = ?),'updateUser',?,CURDATE())")
+                    "insert into log(uin, operator,operation, reason, date) values (?,(select nickname from admin where token = ?),'updateUser',?,now())")
             ) {
                 query.setInt(1, uin);
                 ResultSet rss = query.executeQuery();
@@ -84,6 +85,7 @@ public class Database {
                     rss.first();
                     rss.updateInt("status", status);
                     rss.updateString("reason", reason);
+                    rss.updateDate("lastUpdate", new Date(System.currentTimeMillis()));
                     rss.updateRow();
                 } else {
                     insert.setInt(1, uin);
@@ -138,7 +140,7 @@ public class Database {
         if (validate(token)) {
             try (PreparedStatement delete = db.prepareStatement("delete from user where uin = ?");
                 PreparedStatement log = db.prepareStatement(
-                    "insert into log(uin, operator,operation, reason, date) values (?,(select nickname from admin where token = ?),'deleteUser',?,CURDATE())")) {
+                    "insert into log(uin, operator,operation, reason, date) values (?,(select nickname from admin where token = ?),'deleteUser',?,now())")) {
                 delete.setInt(1, uin);
                 delete.executeUpdate();
                 log.setInt(1, uin);
@@ -148,6 +150,46 @@ public class Database {
             } catch (SQLException throwable) {
                 logger.error(throwable);
                 throwable.printStackTrace();
+                return resp.resp(500);
+            }
+        } else {
+            return resp.resp(401);
+        }
+    }
+
+    /**
+     * @param destToken 待添加token
+     * @param token     管理员token
+     * @param nickname  待添加管理员昵称
+     * @param reason    理由
+     * @return 返回值
+     */
+    public String promoteAdmin(String destToken, String nickname, String reason, String token) {
+        if (validate(token)) {
+            try (PreparedStatement query = db
+                .prepareStatement("select * from admin where token = ?");
+                PreparedStatement promote = db.prepareStatement(
+                    "insert into admin(token, nickname, creator, role, reason, lastUpdate)values " +
+                        "(?,?,(select * from ( (select nickname from admin where token = ?) ) as an),"
+                        +
+                        "( ( select * from (select role from admin where token= ?) as ar ) +1 ), ? ,now())")) {
+                query.setString(1, destToken);
+                ResultSet rs = query.executeQuery();
+                if (rs.next()) {
+                    return "{\"code\": 403,\"reason\": \"dest admin token exist\"}";
+                } else {
+                    promote.setString(1, destToken);
+                    promote.setString(2, nickname);
+                    promote.setString(3, token);
+                    promote.setString(4, token);
+                    promote.setString(5, reason);
+                    promote.executeUpdate();
+                    return resp.resp(200);
+                }
+
+            } catch (SQLException throwables) {
+                logger.error(throwables);
+                throwables.printStackTrace();
                 return resp.resp(500);
             }
         } else {
