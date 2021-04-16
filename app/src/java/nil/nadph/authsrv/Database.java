@@ -22,10 +22,10 @@
 package nil.nadph.authsrv;
 
 import java.sql.Connection;
-import java.sql.Date;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.sql.Timestamp;
 import kotlin.text.Regex;
 import nil.nadph.authsrv.data.Response;
 import org.apache.logging.log4j.LogManager;
@@ -82,10 +82,9 @@ public class Database {
                 query.setInt(1, uin);
                 ResultSet rss = query.executeQuery();
                 if (rss.next()) {
-                    rss.first();
                     rss.updateInt("status", status);
                     rss.updateString("reason", reason);
-                    rss.updateDate("lastUpdate", new Date(System.currentTimeMillis()));
+                    rss.updateTimestamp("lastUpdate", new Timestamp(System.currentTimeMillis()));
                     rss.updateRow();
                 } else {
                     insert.setInt(1, uin);
@@ -135,6 +134,7 @@ public class Database {
      * @param token  管理员token
      * @param reason 理由
      * @return 返回值
+     * @author gao_cai_sheng
      */
     public String deleteUser(int uin, String token, String reason) {
         if (validate(token)) {
@@ -163,6 +163,7 @@ public class Database {
      * @param nickname  待添加管理员昵称
      * @param reason    理由
      * @return 返回值
+     * @author gao_cai_sheng
      */
     public String promoteAdmin(String destToken, String nickname, String reason, String token) {
         if (validate(token)) {
