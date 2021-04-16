@@ -14,49 +14,90 @@
 
 Post: `/user/queryUser`
 
-请求参数 |参数名称|类型|描述| |:-:|:-:|:-:| |uin|String|QQ号|
+|参数名称|类型|描述|
+|:-:|:-:|:-:|
+|uin|String|QQ号|
 
 Response:
 
-|参数名称|类型|描述| |:-:|:-:|:-:| |code|Int|状态码| |status|Int|黑白名单状态| |reason|String|理由| |lastUpdate|String|时间|
+|参数名称|类型|描述|
+|:-:|:-:|:-:|
+|code|Int|状态码|
+|status|Int|黑白名单状态|
+|reason|String|理由|
+|lastUpdate|String|时间|
 
 Post: `/user/updateUser`
 
-|参数名称|类型|描述| |:-:|:-:|:-:| |code|Int|状态码| |uin|String|QQ号| |status|Int|黑白名单状态|
-|token|String|管理员token| |reason|String|理由 不可为空|
+|参数名称|类型|描述|
+|:-:|:-:|:-:|
+|code|Int|状态码|
+|uin|String|QQ号|
+|status|Int|黑白名单状态|
+|token|String|管理员token|
+|reason|String|理由 不可为空|
 
 Response:
 
-|参数名称|类型|描述| |:-:|:-:|:-:| |code|Int|状态码| |reason|String|理由 可为空|
+|参数名称|类型|描述|
+|:-:|:-:|:-:|
+|code|Int|状态码|
+|reason|String|理由 可为空|
 
 Post `/user/deleteUser`
 
-|参数名称|类型|描述| |:-:|:-:|:-:| |uin|String|QQ号| |reason|String|理由 不可为空| |token|String|管理员token|
+|参数名称|类型|描述|
+|:-:|:-:|:-:|
+|uin|String|QQ号|
+|reason|String|理由 不可为空|
+|token|String|管理员token|
 
 Response:
 
-|参数名称|类型|描述| |:-:|:-:|:-:| |code|Int|状态码| |reason|String|理由 可为空|
+|参数名称|类型|描述|
+|:-:|:-:|:-:|
+|code|Int|状态码|
+|reason|String|理由 可为空|
 
 Post: `/admin/qureyHistory`
 
-|参数名称|类型|描述| |:-:|:-:|:-:| |uin|String|QQ号| |token|String|管理员token|
+|参数名称|类型|描述|
+|:-:|:-:|:-:| 
+|uin|String|QQ号|
+|token|String|管理员token|
 
 Response:
 
-|参数名称|类型|描述| |:-:|:-:|:-:| |code|Int|状态码| |history|String|所有针对该用户的操作记录|
+|参数名称|类型|描述|
+|:-:|:-:|:-:|
+|code|Int|状态码|
+|history|String|所有针对该用户的操作记录|
 
 Post: `/admin/promoteAdmin`
 
-|参数名称|类型|描述| |:-:|:-:|:-:| |uin|String|待添加的管理员token| |nickname|String|待添加的管理员名称|
-|token|String|管理员token| |reason|String|理由 可为空|
+|参数名称|类型|描述|
+|:-:|:-:|:-:|
+|uin|String|待添加的管理员token|
+|nickname|String|待添加的管理员名称|
+|token|String|管理员token|
+|reason|String|理由 可为空|
 
 Response:
-|参数名称|类型|描述| |:-:|:-:|:-:| |code|Int|状态码|
+|参数名称|类型|描述|
+|:-:|:-:|:-:|
+|code|Int|状态码|
 
 Post: `/admin/revokeAdmin`
 
-|参数名称|类型|描述| |:-:|:-:|:-:| |uin|String|待添加的管理员token| |token|String|管理员token| |reason|String|理由 可为空|
+|参数名称|类型|描述|
+|:-:|:-:|:-:|
+|uin|String|待添加的管理员token|
+|token|String|管理员token|
+|reason|String|理由 可为空|
 
 Response:
 
-|参数名称|类型|描述| |:-:|:-:|:-:| |code|Int|状态码| |reason|String|理由 可为空|
+|参数名称|类型|描述| 
+:-:|:-:|:-:|
+|code|Int|状态码|
+|reason|String|理由 可为空|
