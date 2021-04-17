@@ -48,70 +48,94 @@ fun main() {
             post("/user/updateUser") {
                 val req = JSONObject.parseObject(call.receiveText())
                 if (req != null) {
+                    val response = db.updateUser(
+                        req.getIntValue("uin"),
+                        req.getIntValue("status"),
+                        req.getString("token"),
+                        req.getString("reason")
+                    )
                     call.respondText(
-                        db.updateUser(
-                            req.getIntValue("uin"),
-                            req.getIntValue("status"),
-                            req.getString("token"),
-                            req.getString("reason")
-                        ),
-                        ContentType("application", "json")
+                        response,
+                        ContentType("application", "json"),
+                        HttpStatusCode(
+                            JSONObject.parseObject(response).getIntValue("code"),
+                            JSONObject.parseObject(response).getString("reason")
+                        )
                     )
                 } else {
                     call.respondText(
                         resp.resp(400),
-                        ContentType("application", "json")
+                        ContentType("application", "json"),
+                        HttpStatusCode.BadRequest
                     )
                 }
             }
             post("/user/queryUser") {
                 val req = JSONObject.parseObject(call.receiveText())
                 if (req != null) {
+                    val response = db.queryUser(req.getIntValue("uin"))
                     call.respondText(
-                        db.queryUser(req.getIntValue("uin")),
-                        ContentType("application", "json")
+                        response,
+                        ContentType("application", "json"),
+                        HttpStatusCode(
+                            JSONObject.parseObject(response).getIntValue("code"),
+                            JSONObject.parseObject(response).getString("reason")
+                        )
                     )
                 } else {
                     call.respondText(
                         resp.resp(400),
-                        ContentType("application", "json")
+                        ContentType("application", "json"),
+                        HttpStatusCode.BadRequest
                     )
                 }
             }
             post("/user/deleteUser") {
                 val req = JSONObject.parseObject(call.receiveText())
                 if (req != null) {
+                    val response = db.deleteUser(
+                        req.getIntValue("uin"),
+                        req.getString("token"),
+                        req.getString("reason")
+                    )
                     call.respondText(
-                        db.deleteUser(
-                            req.getIntValue("uin"),
-                            req.getString("token"),
-                            req.getString("reason")
-                        ),
-                        ContentType("application", "json")
+                        response,
+                        ContentType("application", "json"),
+                        HttpStatusCode(
+                            JSONObject.parseObject(response).getIntValue("code"),
+                            JSONObject.parseObject(response).getString("reason")
+                        )
                     )
                 } else {
                     call.respondText(
                         resp.resp(400),
-                        ContentType("application", "json")
+                        ContentType("application", "json"),
+                        HttpStatusCode.BadRequest
                     )
                 }
             }
             post("/admin/promoteAdmin") {
                 val req = JSONObject.parseObject(call.receiveText())
                 if (req != null) {
+                    val response = db.promoteAdmin(
+                        req.getString("desttoken"),
+                        req.getString("nickname"),
+                        req.getString("reason"),
+                        req.getString("token")
+                    )
                     call.respondText(
-                        db.promoteAdmin(
-                            req.getString("desttoken"),
-                            req.getString("nickname"),
-                            req.getString("reason"),
-                            req.getString("token")
-                        ),
-                        ContentType("application", "json")
+                        response,
+                        ContentType("application", "json"),
+                        HttpStatusCode(
+                            JSONObject.parseObject(response).getIntValue("code"),
+                            JSONObject.parseObject(response).getString("reason")
+                        )
                     )
                 } else {
                     call.respondText(
                         resp.resp(400),
-                        ContentType("application", "json")
+                        ContentType("application", "json"),
+                        HttpStatusCode.BadRequest
                     )
                 }
 
@@ -119,34 +143,46 @@ fun main() {
             post("/admin/revokeAdmin") {
                 val req = JSONObject.parseObject(call.receiveText())
                 if (req != null) {
+                    val response = db.revokeAdmin(
+                        req.getString("desttoken"),
+                        req.getString("token")
+                    )
                     call.respondText(
-                        db.revokeAdmin(
-                            req.getString("desttoken"),
-                            req.getString("token")
-                        ),
-                        ContentType("application", "json")
+                        response,
+                        ContentType("application", "json"),
+                        HttpStatusCode(
+                            JSONObject.parseObject(response).getIntValue("code"),
+                            JSONObject.parseObject(response).getString("reason")
+                        )
                     )
                 } else {
                     call.respondText(
                         resp.resp(400),
-                        ContentType("application", "json")
+                        ContentType("application", "json"),
+                        HttpStatusCode.BadRequest
                     )
                 }
             }
             post("/user/queryHistory") {
                 val req = JSONObject.parseObject(call.receiveText())
                 if (req != null) {
+                    val response = db.queryHistory(
+                        req.getIntValue("uin"),
+                        req.getString("token")
+                    )
                     call.respondText(
-                        db.queryHistory(
-                            req.getIntValue("uin"),
-                            req.getString("token")
-                        ),
-                        ContentType("application", "json")
+                        response,
+                        ContentType("application", "json"),
+                        HttpStatusCode(
+                            JSONObject.parseObject(response).getIntValue("code"),
+                            JSONObject.parseObject(response).getString("reason")
+                        )
                     )
                 } else {
                     call.respondText(
                         resp.resp(400_1),
-                        ContentType("application", "json")
+                        ContentType("application", "json"),
+                        HttpStatusCode.BadRequest
                     )
                 }
             }
