@@ -157,6 +157,25 @@ public class Database {
         }
     }
 
+
+    public String queryHistory(int uin, String token) {
+        if (validate(token)) {
+            try (PreparedStatement query = db.prepareStatement("select * from log where uin = ?")) {
+                query.setInt(1, uin);
+                ResultSet rs = query.executeQuery();
+                return resp.resp(rs);
+
+            } catch (SQLException throwable) {
+                logger.error(throwable);
+                throwable.printStackTrace();
+                return resp.resp(500_1);
+            }
+        } else {
+            return resp.resp(401);
+        }
+    }
+
+
     /**
      * @param destToken 待添加token
      * @param token     管理员token

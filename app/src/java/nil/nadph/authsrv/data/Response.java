@@ -22,10 +22,17 @@
 
 package nil.nadph.authsrv.data;
 
+import com.alibaba.fastjson.JSONArray;
 import com.alibaba.fastjson.JSONObject;
+import java.sql.ResultSet;
+import java.sql.ResultSetMetaData;
+import java.sql.SQLException;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 public class Response {
 
+    private static final Logger logger = LogManager.getLogger(Response.class);
     /**
      * @param code 状态码 目前可用:200 400 401 403 500
      * @return 状态码对应的返回值
@@ -34,9 +41,11 @@ public class Response {
         return switch (code) {
             case 200 -> "{\"code\": 200, \"reason\": \"\"}";
             case 400 -> "{\"code\": 400,\"reason\": \"empty post message\"}\n";
+            case 400_1 -> "\"code\": 400,\"history\": \"\"}";
             case 401 -> "{\"code\": 401,\"reason\": \"wrong token\"}";
             case 403 -> "{\"code\": 403,\"reason\": \"you don't have permissions to do that\"}";
             case 500 -> "{\"code\": 500,\"reason\": \"unknown error\"}";
+            case 500_1 -> "\"code\": 500,\"history\": \"\"}";
             default -> "{\"code\": 500,\"reason\": \"unknown error\"}";
         };
     }
@@ -49,12 +58,34 @@ public class Response {
      * @param lastUpdate 上次更新日期
      * @return 应返回值 json
      */
-    public String resp(int code,int status,String reason,String lastUpdate){
+    public String resp(int code, int status, String reason, String lastUpdate) {
         JSONObject response = new JSONObject();
-        response.put("code",code);
-        response.put("status",status);
-        response.put("reason",reason);
-        response.put("lastUpdate",lastUpdate);
+        response.put("code", code);
+        response.put("status", status);
+        response.put("reason", reason);
+        response.put("lastUpdate", lastUpdate);
         return response.toJSONString();
+    }
+
+    public String resp(ResultSet rs) {
+        try {
+            JSONArray array = new JSONArray();
+            ResultSetMetaData metaData = rs.getMetaData();
+            int columnCount = metaData.getColumnCount();
+            while (rs.next()) {
+                JSONObject jsonObj = new JSONObject();
+                for (int i = 1; i <= columnCount; i++) {
+                    String columnName = metaData.getColumnLabel(i);
+                    String value = rs.getString(columnName);
+                    jsonObj.put(columnName, value);
+                }
+                array.add(jsonObj);
+            }
+            return "{\"code\":200,\"history\":" + array + "}";
+        } catch (SQLException throwables) {
+            throwables.printStackTrace();
+            logger.error(throwables);
+            return this.resp(500_1);
+        }
     }
 }

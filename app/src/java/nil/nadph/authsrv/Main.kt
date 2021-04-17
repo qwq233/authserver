@@ -133,6 +133,23 @@ fun main() {
                     )
                 }
             }
+            post("/user/queryHistory") {
+                val req = JSONObject.parseObject(call.receiveText())
+                if (req != null) {
+                    call.respondText(
+                        db.queryHistory(
+                            req.getIntValue("uin"),
+                            req.getString("token")
+                        ),
+                        ContentType("application", "json")
+                    )
+                } else {
+                    call.respondText(
+                        resp.resp(400_1),
+                        ContentType("application", "json")
+                    )
+                }
+            }
 
         }
     }
