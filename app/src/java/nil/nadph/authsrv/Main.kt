@@ -116,6 +116,23 @@ fun main() {
                 }
 
             }
+            post("/admin/revokeAdmin") {
+                val req = JSONObject.parseObject(call.receiveText())
+                if (req != null) {
+                    call.respondText(
+                        db.revokeAdmin(
+                            req.getString("desttoken"),
+                            req.getString("token")
+                        ),
+                        ContentType("application", "json")
+                    )
+                } else {
+                    call.respondText(
+                        resp.resp(400),
+                        ContentType("application", "json")
+                    )
+                }
+            }
 
         }
     }

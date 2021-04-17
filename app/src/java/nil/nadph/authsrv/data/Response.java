@@ -27,7 +27,7 @@ import com.alibaba.fastjson.JSONObject;
 public class Response {
 
     /**
-     * @param code 状态码 目前可用:200 400 401 500
+     * @param code 状态码 目前可用:200 400 401 403 500
      * @return 状态码对应的返回值
      */
     public String resp(int code) {
@@ -35,6 +35,7 @@ public class Response {
             case 200 -> "{\"code\": 200, \"reason\": \"\"}";
             case 400 -> "{\"code\": 400,\"reason\": \"empty post message\"}\n";
             case 401 -> "{\"code\": 401,\"reason\": \"wrong token\"}";
+            case 403 -> "{\"code\": 403,\"reason\": \"you don't have permissions to do that\"}";
             case 500 -> "{\"code\": 500,\"reason\": \"unknown error\"}";
             default -> "{\"code\": 500,\"reason\": \"unknown error\"}";
         };

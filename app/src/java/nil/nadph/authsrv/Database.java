@@ -188,9 +188,50 @@ public class Database {
                     return resp.resp(200);
                 }
 
-            } catch (SQLException throwables) {
-                logger.error(throwables);
-                throwables.printStackTrace();
+            } catch (SQLException throwable) {
+                logger.error(throwable);
+                throwable.printStackTrace();
+                return resp.resp(500);
+            }
+        } else {
+            return resp.resp(401);
+        }
+    }
+
+    /**
+     * @param destToken 目标token
+     * @param token     操作管理员token
+     * @return 返回值
+     * @author gao_cai_sheng
+     */
+    public String revokeAdmin(String destToken, String token) {
+        if (validate(token)) {
+            try (PreparedStatement query = db
+                .prepareStatement("select role from admin where token = ?");
+                PreparedStatement queryDest = db
+                    .prepareStatement("select role from admin where token = ?");
+                PreparedStatement revoke = db
+                    .prepareStatement("delete from admin where token = ?")) {
+                query.setString(1, token);
+                ResultSet rs = query.executeQuery();
+                rs.next();
+                queryDest.setString(1, destToken);
+                ResultSet destrs = queryDest.executeQuery();
+                if (destrs.next()) {
+                    if (destrs.getInt("role") > rs.getInt("role")) {
+                        revoke.setString(1, destToken);
+                        revoke.executeUpdate();
+                        return resp.resp(200);
+                    } else {
+                        return resp.resp(403);
+                    }
+
+                } else {
+                    return "{\"code\": 403,\"reason\": \"dest admin token is not exist\"}";
+                }
+            } catch (SQLException throwable) {
+                logger.error(throwable);
+                throwable.printStackTrace();
                 return resp.resp(500);
             }
         } else {
