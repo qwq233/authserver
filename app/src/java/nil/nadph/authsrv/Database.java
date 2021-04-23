@@ -21,6 +21,7 @@
  */
 package nil.nadph.authsrv;
 
+import com.zaxxer.hikari.HikariDataSource;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -34,13 +35,36 @@ import org.jetbrains.annotations.NotNull;
 
 public class Database {
 
+    public static final int MAX_SIZE = 20;
     private static final Logger logger = LogManager.getLogger(Database.class);
+    private static final Database[] instance = new Database[MAX_SIZE];
+    private static int pos = 0;
     private final Connection db;
     private final Response resp;
 
-    public Database(Connection db) {
+    private Database(Connection db) {
         this.db = db;
         this.resp = new Response();
+    }
+
+    public static void init(HikariDataSource db) {
+        for (int i = 0; i < MAX_SIZE; i++) {
+            try {
+                instance[i] = new Database(db.getConnection());
+            } catch (SQLException throwables) {
+                throwables.printStackTrace();
+                logger.error(throwables);
+            }
+        }
+    }
+
+    public static Database getInstance() {
+        if (pos < MAX_SIZE) {
+            pos++;
+        } else {
+            pos = 0;
+        }
+        return instance[pos];
     }
 
     public boolean validate(String token) {

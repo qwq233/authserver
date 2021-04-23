@@ -29,6 +29,7 @@ import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.jetbrains.annotations.NotNull;
 
 public class Response {
 
@@ -67,7 +68,7 @@ public class Response {
         return response.toJSONString();
     }
 
-    public String resp(ResultSet rs) {
+    public String resp(@NotNull ResultSet rs) {
         try {
             JSONArray array = new JSONArray();
             ResultSetMetaData metaData = rs.getMetaData();

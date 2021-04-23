@@ -39,7 +39,7 @@ fun main() {
     val cf = Config("./config.json")
     val resp = Response()
     val dbSource = cf.dataSource
-    val db = Database(dbSource.connection)
+    Database.init(dbSource)
     val server = embeddedServer(Netty, 10810) {
         routing {
             get("/") {
@@ -48,7 +48,7 @@ fun main() {
             post("/user/updateUser") {
                 val req = JSONObject.parseObject(call.receiveText())
                 if (req != null) {
-                    val response = db.updateUser(
+                    val response = Database.getInstance().updateUser(
                         req.getIntValue("uin"),
                         req.getIntValue("status"),
                         req.getString("token"),
@@ -73,7 +73,7 @@ fun main() {
             post("/user/queryUser") {
                 val req = JSONObject.parseObject(call.receiveText())
                 if (req != null) {
-                    val response = db.queryUser(req.getIntValue("uin"))
+                    val response = Database.getInstance().queryUser(req.getIntValue("uin"))
                     call.respondText(
                         response,
                         ContentType("application", "json"),
@@ -93,7 +93,7 @@ fun main() {
             post("/user/deleteUser") {
                 val req = JSONObject.parseObject(call.receiveText())
                 if (req != null) {
-                    val response = db.deleteUser(
+                    val response = Database.getInstance().deleteUser(
                         req.getIntValue("uin"),
                         req.getString("token"),
                         req.getString("reason")
@@ -117,7 +117,7 @@ fun main() {
             post("/admin/promoteAdmin") {
                 val req = JSONObject.parseObject(call.receiveText())
                 if (req != null) {
-                    val response = db.promoteAdmin(
+                    val response = Database.getInstance().promoteAdmin(
                         req.getString("desttoken"),
                         req.getString("nickname"),
                         req.getString("reason"),
@@ -143,7 +143,7 @@ fun main() {
             post("/admin/revokeAdmin") {
                 val req = JSONObject.parseObject(call.receiveText())
                 if (req != null) {
-                    val response = db.revokeAdmin(
+                    val response = Database.getInstance().revokeAdmin(
                         req.getString("desttoken"),
                         req.getString("token")
                     )
@@ -166,7 +166,7 @@ fun main() {
             post("/user/queryHistory") {
                 val req = JSONObject.parseObject(call.receiveText())
                 if (req != null) {
-                    val response = db.queryHistory(
+                    val response = Database.getInstance().queryHistory(
                         req.getIntValue("uin"),
                         req.getString("token")
                     )
