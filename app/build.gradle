@@ -42,7 +42,7 @@ apply plugin: 'java'
 group 'nil.nadph.authsrv'
 version '0.0.1'
 
-mainClassName = "nil.nadph.authsrv.MainKt"
+mainClassName = "top.qwq2333.authsrv.MainKt"
 
 apply plugin: 'com.github.johnrengelman.shadow'
 

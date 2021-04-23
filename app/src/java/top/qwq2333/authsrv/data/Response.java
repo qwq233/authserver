@@ -20,7 +20,7 @@
  * <https://github.com/ferredoxin/QNotified/blob/master/LICENSE.md>.
  */
 
-package nil.nadph.authsrv.data;
+package top.qwq2333.authsrv.data;
 
 import com.alibaba.fastjson.JSONArray;
 import com.alibaba.fastjson.JSONObject;

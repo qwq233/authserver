@@ -19,7 +19,7 @@
  * <https://www.gnu.org/licenses/>
  * <https://github.com/ferredoxin/QNotified/blob/master/LICENSE.md>.
  */
-package nil.nadph.authsrv
+package top.qwq2333.authsrv
 
 import com.alibaba.fastjson.JSONObject
 import io.ktor.application.*
@@ -29,7 +29,7 @@ import io.ktor.response.*
 import io.ktor.routing.*
 import io.ktor.server.engine.*
 import io.ktor.server.netty.*
-import nil.nadph.authsrv.data.Response
+import top.qwq2333.authsrv.data.Response
 
 
 /**

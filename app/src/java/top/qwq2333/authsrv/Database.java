@@ -19,7 +19,7 @@
  * <https://www.gnu.org/licenses/>
  * <https://github.com/ferredoxin/QNotified/blob/master/LICENSE.md>.
  */
-package nil.nadph.authsrv;
+package top.qwq2333.authsrv;
 
 import com.zaxxer.hikari.HikariDataSource;
 import java.sql.Connection;
@@ -28,10 +28,10 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Timestamp;
 import kotlin.text.Regex;
-import nil.nadph.authsrv.data.Response;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.jetbrains.annotations.NotNull;
+import top.qwq2333.authsrv.data.Response;
 
 public class Database {
 

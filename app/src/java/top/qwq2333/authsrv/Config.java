@@ -19,7 +19,7 @@
  * <https://www.gnu.org/licenses/>
  * <https://github.com/ferredoxin/QNotified/blob/master/LICENSE.md>.
  */
-package nil.nadph.authsrv;
+package top.qwq2333.authsrv;
 
 import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONObject;
