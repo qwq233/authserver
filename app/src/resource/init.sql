@@ -43,6 +43,7 @@ create table log
     uin       int      not null,
     operator  text     not null,
     operation text     not null,
+    changes   text     not null,
     reason    text     not null,
     date      datetime not null
 );

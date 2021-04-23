@@ -21,6 +21,7 @@
  */
 package top.qwq2333.authsrv;
 
+import com.alibaba.fastjson.JSON;
 import com.zaxxer.hikari.HikariDataSource;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
@@ -97,11 +98,14 @@ public class Database {
         if (validate(token)) {
             try (
                 PreparedStatement query = db.prepareCall("select * from user where uin = ?",
-                    ResultSet.TYPE_SCROLL_SENSITIVE, ResultSet.CONCUR_UPDATABLE);
+                    ResultSet.TYPE_SCROLL_SENSITIVE,
+                    ResultSet.CONCUR_UPDATABLE);
                 PreparedStatement insert = db.prepareStatement(
                     "insert into user (uin, status, reason, lastUpdate) values(?,?,?,now())");
                 PreparedStatement log = db.prepareStatement(
-                    "insert into log(uin, operator,operation, reason, date) values (?,(select nickname from admin where token = ?),'updateUser',?,now())")
+                    "insert into log(uin, operator, reason, date,changes,operation) "
+                        + "values (?,(select nickname from admin where token = ?),"
+                        + "?,now(),?,?)")
             ) {
                 query.setInt(1, uin);
                 ResultSet rss = query.executeQuery();
@@ -109,11 +113,15 @@ public class Database {
                     rss.updateInt("status", status);
                     rss.updateString("reason", reason);
                     rss.updateTimestamp("lastUpdate", new Timestamp(System.currentTimeMillis()));
+                    log.setString(4, rss.getInt("status") + " -> " + status);
+                    log.setString(5, "updateUser");
                     rss.updateRow();
                 } else {
                     insert.setInt(1, uin);
                     insert.setInt(2, status);
                     insert.setString(3, reason);
+                    log.setString(5, "createUser");
+                    log.setString(4, "null -> " + status);
                     insert.executeUpdate();
                 }
                 log.setInt(1, uin);
@@ -164,12 +172,16 @@ public class Database {
         if (validate(token)) {
             try (PreparedStatement delete = db.prepareStatement("delete from user where uin = ?");
                 PreparedStatement log = db.prepareStatement(
-                    "insert into log(uin, operator,operation, reason, date) values (?,(select nickname from admin where token = ?),'deleteUser',?,now())")) {
+                    "insert into log(uin, operator,operation, reason, date,changes) values (?,(select nickname from admin where token = ?),'deleteUser',?,now(),?)")) {
                 delete.setInt(1, uin);
                 delete.executeUpdate();
                 log.setInt(1, uin);
                 log.setString(2, token);
                 log.setString(3, reason);
+                log.setString(4,
+                    JSON.parseObject(queryUser(uin)).getIntValue("status")
+                        + " -> null");
+                log.executeUpdate();
                 return resp.resp(200);
             } catch (SQLException throwable) {
                 logger.error(throwable);
