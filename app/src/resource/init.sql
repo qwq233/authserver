@@ -20,6 +20,7 @@
  * <https://github.com/ferredoxin/QNotified/blob/master/LICENSE.md>.
  */
 
+use qn_auth;
 create table user
 (
     uin        int primary key,
