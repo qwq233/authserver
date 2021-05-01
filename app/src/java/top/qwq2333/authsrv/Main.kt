@@ -21,6 +21,7 @@
  */
 package top.qwq2333.authsrv
 
+import com.alibaba.fastjson.JSONException
 import com.alibaba.fastjson.JSONObject
 import io.ktor.application.*
 import io.ktor.http.*
@@ -46,8 +47,8 @@ fun main() {
                 call.respondText("Hello, world!", ContentType.Text.Plain)
             }
             post("/user/updateUser") {
-                val req = JSONObject.parseObject(call.receiveText())
-                if (req != null) {
+                try {
+                    val req = JSONObject.parseObject(call.receiveText())
                     val response = Database.getInstance().updateUser(
                         req.getIntValue("uin"),
                         req.getIntValue("status"),
@@ -62,17 +63,36 @@ fun main() {
                             JSONObject.parseObject(response).getString("reason")
                         )
                     )
-                } else {
+                } catch (ex: NumberFormatException) {
+                    call.respondText(
+                        resp.resp(400_2),
+                        ContentType("application", "json"),
+                        HttpStatusCode.BadRequest
+                    )
+                } catch (js: JSONException) {
+                    call.respondText(
+                        resp.resp(400_2),
+                        ContentType("application", "json"),
+                        HttpStatusCode(400, "Request Body should be a valid JSON object.")
+                    )
+                } catch (npe: NullPointerException) {
                     call.respondText(
                         resp.resp(400),
                         ContentType("application", "json"),
                         HttpStatusCode.BadRequest
                     )
+                } catch (ex: Exception) {
+                    ex.printStackTrace()
+                    call.respondText(
+                        resp.resp(500_2),
+                        ContentType("application", "json"),
+                        HttpStatusCode(500, "Unknown error")
+                    )
                 }
             }
             post("/user/queryUser") {
-                val req = JSONObject.parseObject(call.receiveText())
-                if (req != null) {
+                try {
+                    val req = JSONObject.parseObject(call.receiveText())
                     val response = Database.getInstance().queryUser(req.getIntValue("uin"))
                     call.respondText(
                         response,
@@ -82,17 +102,36 @@ fun main() {
                             JSONObject.parseObject(response).getString("reason")
                         )
                     )
-                } else {
+                } catch (ex: NumberFormatException) {
+                    call.respondText(
+                        resp.resp(400_2),
+                        ContentType("application", "json"),
+                        HttpStatusCode.BadRequest
+                    )
+                } catch (js: JSONException) {
+                    call.respondText(
+                        resp.resp(400_2),
+                        ContentType("application", "json"),
+                        HttpStatusCode(400, "Request Body should be a valid JSON object.")
+                    )
+                } catch (npe: NullPointerException) {
                     call.respondText(
                         resp.resp(400),
                         ContentType("application", "json"),
                         HttpStatusCode.BadRequest
                     )
+                } catch (ex: Exception) {
+                    ex.printStackTrace()
+                    call.respondText(
+                        resp.resp(500_2),
+                        ContentType("application", "json"),
+                        HttpStatusCode(500, "Unknown error")
+                    )
                 }
             }
             post("/user/deleteUser") {
-                val req = JSONObject.parseObject(call.receiveText())
-                if (req != null) {
+                try {
+                    val req = JSONObject.parseObject(call.receiveText())
                     val response = Database.getInstance().deleteUser(
                         req.getIntValue("uin"),
                         req.getString("token"),
@@ -106,17 +145,36 @@ fun main() {
                             JSONObject.parseObject(response).getString("reason")
                         )
                     )
-                } else {
+                } catch (ex: NumberFormatException) {
+                    call.respondText(
+                        resp.resp(400_2),
+                        ContentType("application", "json"),
+                        HttpStatusCode.BadRequest
+                    )
+                } catch (js: JSONException) {
+                    call.respondText(
+                        resp.resp(400_2),
+                        ContentType("application", "json"),
+                        HttpStatusCode(400, "Request Body should be a valid JSON object.")
+                    )
+                } catch (npe: NullPointerException) {
                     call.respondText(
                         resp.resp(400),
                         ContentType("application", "json"),
                         HttpStatusCode.BadRequest
                     )
+                } catch (ex: Exception) {
+                    ex.printStackTrace()
+                    call.respondText(
+                        resp.resp(500_2),
+                        ContentType("application", "json"),
+                        HttpStatusCode(500, "Unknown error")
+                    )
                 }
             }
             post("/admin/promoteAdmin") {
-                val req = JSONObject.parseObject(call.receiveText())
-                if (req != null) {
+                try {
+                    val req = JSONObject.parseObject(call.receiveText())
                     val response = Database.getInstance().promoteAdmin(
                         req.getString("desttoken"),
                         req.getString("nickname"),
@@ -131,18 +189,37 @@ fun main() {
                             JSONObject.parseObject(response).getString("reason")
                         )
                     )
-                } else {
+                } catch (js: JSONException) {
+                    call.respondText(
+                        resp.resp(400_2),
+                        ContentType("application", "json"),
+                        HttpStatusCode(400, "Request Body should be a valid JSON object.")
+                    )
+                } catch (npe: NullPointerException) {
                     call.respondText(
                         resp.resp(400),
                         ContentType("application", "json"),
                         HttpStatusCode.BadRequest
                     )
+                } catch (ex: NumberFormatException) {
+                    call.respondText(
+                        resp.resp(400_2),
+                        ContentType("application", "json"),
+                        HttpStatusCode.BadRequest
+                    )
+                } catch (ex: Exception) {
+                    ex.printStackTrace()
+                    call.respondText(
+                        resp.resp(500_2),
+                        ContentType("application", "json"),
+                        HttpStatusCode(500, "Unknown error")
+                    )
                 }
 
             }
             post("/admin/revokeAdmin") {
-                val req = JSONObject.parseObject(call.receiveText())
-                if (req != null) {
+                try {
+                    val req = JSONObject.parseObject(call.receiveText())
                     val response = Database.getInstance().revokeAdmin(
                         req.getString("desttoken"),
                         req.getString("token")
@@ -155,17 +232,36 @@ fun main() {
                             JSONObject.parseObject(response).getString("reason")
                         )
                     )
-                } else {
+                } catch (js: JSONException) {
+                    call.respondText(
+                        resp.resp(400_2),
+                        ContentType("application", "json"),
+                        HttpStatusCode(400, "Request Body should be a valid JSON object.")
+                    )
+                } catch (ex: NumberFormatException) {
+                    call.respondText(
+                        resp.resp(400_2),
+                        ContentType("application", "json"),
+                        HttpStatusCode.BadRequest
+                    )
+                } catch (npe: NullPointerException) {
                     call.respondText(
                         resp.resp(400),
                         ContentType("application", "json"),
                         HttpStatusCode.BadRequest
                     )
+                } catch (ex: Exception) {
+                    ex.printStackTrace()
+                    call.respondText(
+                        resp.resp(500_2),
+                        ContentType("application", "json"),
+                        HttpStatusCode(500, "Unknown error")
+                    )
                 }
             }
             post("/user/queryHistory") {
-                val req = JSONObject.parseObject(call.receiveText())
-                if (req != null) {
+                try {
+                    val req = JSONObject.parseObject(call.receiveText())
                     val response = Database.getInstance().queryHistory(
                         req.getIntValue("uin"),
                         req.getString("token")
@@ -178,11 +274,30 @@ fun main() {
                             JSONObject.parseObject(response).getString("reason")
                         )
                     )
-                } else {
+                } catch (js: JSONException) {
                     call.respondText(
                         resp.resp(400_1),
                         ContentType("application", "json"),
+                        HttpStatusCode(400, "Request Body should be a valid JSON object.")
+                    )
+                } catch (npe: NullPointerException) {
+                    call.respondText(
+                        resp.resp(400),
+                        ContentType("application", "json"),
                         HttpStatusCode.BadRequest
+                    )
+                } catch (ex: NumberFormatException) {
+                    call.respondText(
+                        resp.resp(400_2),
+                        ContentType("application", "json"),
+                        HttpStatusCode.BadRequest
+                    )
+                } catch (ex: Exception) {
+                    ex.printStackTrace()
+                    call.respondText(
+                        resp.resp(500_1),
+                        ContentType("application", "json"),
+                        HttpStatusCode(500, "Unknown error")
                     )
                 }
             }

@@ -41,13 +41,16 @@ public class Response {
     public String resp(int code) {
         return switch (code) {
             case 200 -> "{\"code\": 200, \"reason\": \"\"}";
-            case 400 -> "{\"code\": 400,\"reason\": \"empty post message\"}\n";
+            case 400 -> "{\"code\": 400,\"reason\": \"Request body is empty.\"}";
             case 400_1 -> "\"code\": 400,\"history\": \"\"}";
-            case 401 -> "{\"code\": 401,\"reason\": \"wrong token\"}";
-            case 403 -> "{\"code\": 403,\"reason\": \"you don't have permissions to do that\"}";
-            case 500 -> "{\"code\": 500,\"reason\": \"unknown error\"}";
+            case 400_2 -> "{\"code\": 400,\"reason\": \"Request Body should be a valid JSON object.\"}";
+            case 401 -> "{\"code\": 401,\"reason\": \"Authentication failed\"}";
+            case 403 -> "{\"code\": 403,\"reason\": \"You don't have permissions to do that\"}";
+            case 500 -> "{\"code\": 500,\"reason\": \"Can't connect to the database."
+                + "please try again later.\"}";
             case 500_1 -> "\"code\": 500,\"history\": \"\"}";
-            default -> "{\"code\": 500,\"reason\": \"unknown error\"}";
+            case 500_2 -> "{\"code\": 500,\"reason\": \"Unknown error\"}";
+            default -> "{\"code\": 500,\"reason\": \"Unknown error\"}";
         };
     }
 

@@ -22,6 +22,7 @@
 package top.qwq2333.authsrv;
 
 import com.alibaba.fastjson.JSON;
+import com.alibaba.fastjson.JSONException;
 import com.zaxxer.hikari.HikariDataSource;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
@@ -68,6 +69,11 @@ public class Database {
         return instance[pos];
     }
 
+    /**
+     * @param token 管理员token
+     * @return token是否存在且合法
+     */
+    @SuppressWarnings("BooleanMethodIsAlwaysInverted")
     public boolean validate(String token) {
         Regex regex = new Regex("^[0-9A-Za-z_]+$");
         if (!regex.matches(token)) {
@@ -81,6 +87,8 @@ public class Database {
         } catch (SQLException ex) {
             logger.error(ex);
             ex.printStackTrace();
+            return false;
+        } catch (NullPointerException npe) {
             return false;
         }
     }
@@ -167,7 +175,7 @@ public class Database {
      * @return 返回值
      * @author gao_cai_sheng
      */
-    public String deleteUser(int uin, String token, String reason) {
+    public String deleteUser(int uin, @NotNull String token, String reason) {
         if (!validate(token)) {
             return resp.resp(401);
         }
@@ -188,11 +196,17 @@ public class Database {
             logger.error(throwable);
             throwable.printStackTrace();
             return resp.resp(500);
+        } catch (JSONException js) {
+            return resp.resp(400_2);
+        } catch (Exception ex) {
+            logger.error(ex);
+            ex.printStackTrace();
+            return resp.resp(500_2);
         }
     }
 
 
-    public String queryHistory(int uin, String token) {
+    public String queryHistory(int uin, @NotNull String token) {
         if (!validate(token)) {
             return resp.resp(401);
         }
@@ -217,7 +231,8 @@ public class Database {
      * @return 返回值
      * @author gao_cai_sheng
      */
-    public String promoteAdmin(String destToken, String nickname, String reason, String token) {
+    public String promoteAdmin(@NotNull String destToken, String nickname, String reason,
+        @NotNull String token) {
         if (!validate(token)) {
             return resp.resp(401);
         }
