@@ -70,18 +70,17 @@ public class Database {
 
     public boolean validate(String token) {
         Regex regex = new Regex("^[0-9A-Za-z_]+$");
-        if (regex.matches(token)) {
-            try (PreparedStatement pstmt = db
-                .prepareStatement("select * from admin where token = ?")) {
-                pstmt.setString(1, token);
-                ResultSet admin = pstmt.executeQuery();
-                return admin.next();
-            } catch (SQLException ex) {
-                logger.error(ex);
-                ex.printStackTrace();
-                return false;
-            }
-        } else {
+        if (!regex.matches(token)) {
+            return false;
+        }
+        try (PreparedStatement pstmt = db
+            .prepareStatement("select * from admin where token = ?")) {
+            pstmt.setString(1, token);
+            ResultSet admin = pstmt.executeQuery();
+            return admin.next();
+        } catch (SQLException ex) {
+            logger.error(ex);
+            ex.printStackTrace();
             return false;
         }
     }
@@ -95,48 +94,48 @@ public class Database {
      */
     public String updateUser(int uin, int status, @NotNull String token,
         String reason) {
-        if (validate(token)) {
-            try (
-                PreparedStatement query = db.prepareCall("select * from user where uin = ?",
-                    ResultSet.TYPE_SCROLL_SENSITIVE,
-                    ResultSet.CONCUR_UPDATABLE);
-                PreparedStatement insert = db.prepareStatement(
-                    "insert into user (uin, status, reason, lastUpdate) values(?,?,?,now())");
-                PreparedStatement log = db.prepareStatement(
-                    "insert into log(uin, operator, reason, date,changes,operation) "
-                        + "values (?,(select nickname from admin where token = ?),"
-                        + "?,now(),?,?)")
-            ) {
-                query.setInt(1, uin);
-                ResultSet rss = query.executeQuery();
-                if (rss.next()) {
-                    rss.updateInt("status", status);
-                    rss.updateString("reason", reason);
-                    rss.updateTimestamp("lastUpdate", new Timestamp(System.currentTimeMillis()));
-                    log.setString(4, rss.getInt("status") + " -> " + status);
-                    log.setString(5, "updateUser");
-                    rss.updateRow();
-                } else {
-                    insert.setInt(1, uin);
-                    insert.setInt(2, status);
-                    insert.setString(3, reason);
-                    log.setString(5, "createUser");
-                    log.setString(4, "null -> " + status);
-                    insert.executeUpdate();
-                }
-                log.setInt(1, uin);
-                log.setString(2, token);
-                log.setString(3, reason);
-                log.executeUpdate();
-                return resp.resp(200);
-            } catch (SQLException ex) {
-                logger.error(ex);
-                ex.printStackTrace();
-                return resp.resp(500);
-            }
-        } else {
+        if (!validate(token)) {
             return resp.resp(401);
         }
+        try (
+            PreparedStatement query = db.prepareCall("select * from user where uin = ?",
+                ResultSet.TYPE_SCROLL_SENSITIVE,
+                ResultSet.CONCUR_UPDATABLE);
+            PreparedStatement insert = db.prepareStatement(
+                "insert into user (uin, status, reason, lastUpdate) values(?,?,?,now())");
+            PreparedStatement log = db.prepareStatement(
+                "insert into log(uin, operator, reason, date,changes,operation) "
+                    + "values (?,(select nickname from admin where token = ?),"
+                    + "?,now(),?,?)")
+        ) {
+            query.setInt(1, uin);
+            ResultSet rss = query.executeQuery();
+            if (rss.next()) {
+                rss.updateInt("status", status);
+                rss.updateString("reason", reason);
+                rss.updateTimestamp("lastUpdate", new Timestamp(System.currentTimeMillis()));
+                log.setString(4, rss.getInt("status") + " -> " + status);
+                log.setString(5, "updateUser");
+                rss.updateRow();
+            } else {
+                insert.setInt(1, uin);
+                insert.setInt(2, status);
+                insert.setString(3, reason);
+                log.setString(5, "createUser");
+                log.setString(4, "null -> " + status);
+                insert.executeUpdate();
+            }
+            log.setInt(1, uin);
+            log.setString(2, token);
+            log.setString(3, reason);
+            log.executeUpdate();
+            return resp.resp(200);
+        } catch (SQLException ex) {
+            logger.error(ex);
+            ex.printStackTrace();
+            return resp.resp(500);
+        }
+
     }
 
     /**
@@ -169,45 +168,43 @@ public class Database {
      * @author gao_cai_sheng
      */
     public String deleteUser(int uin, String token, String reason) {
-        if (validate(token)) {
-            try (PreparedStatement delete = db.prepareStatement("delete from user where uin = ?");
-                PreparedStatement log = db.prepareStatement(
-                    "insert into log(uin, operator,operation, reason, date,changes) values (?,(select nickname from admin where token = ?),'deleteUser',?,now(),?)")) {
-                delete.setInt(1, uin);
-                delete.executeUpdate();
-                log.setInt(1, uin);
-                log.setString(2, token);
-                log.setString(3, reason);
-                log.setString(4,
-                    JSON.parseObject(queryUser(uin)).getIntValue("status")
-                        + " -> null");
-                log.executeUpdate();
-                return resp.resp(200);
-            } catch (SQLException throwable) {
-                logger.error(throwable);
-                throwable.printStackTrace();
-                return resp.resp(500);
-            }
-        } else {
+        if (!validate(token)) {
             return resp.resp(401);
+        }
+        try (PreparedStatement delete = db.prepareStatement("delete from user where uin = ?");
+            PreparedStatement log = db.prepareStatement(
+                "insert into log(uin, operator,operation, reason, date,changes) values (?,(select nickname from admin where token = ?),'deleteUser',?,now(),?)")) {
+            delete.setInt(1, uin);
+            delete.executeUpdate();
+            log.setInt(1, uin);
+            log.setString(2, token);
+            log.setString(3, reason);
+            log.setString(4,
+                JSON.parseObject(queryUser(uin)).getIntValue("status")
+                    + " -> null");
+            log.executeUpdate();
+            return resp.resp(200);
+        } catch (SQLException throwable) {
+            logger.error(throwable);
+            throwable.printStackTrace();
+            return resp.resp(500);
         }
     }
 
 
     public String queryHistory(int uin, String token) {
-        if (validate(token)) {
-            try (PreparedStatement query = db.prepareStatement("select * from log where uin = ?")) {
-                query.setInt(1, uin);
-                ResultSet rs = query.executeQuery();
-                return resp.resp(rs);
-
-            } catch (SQLException throwable) {
-                logger.error(throwable);
-                throwable.printStackTrace();
-                return resp.resp(500_1);
-            }
-        } else {
+        if (!validate(token)) {
             return resp.resp(401);
+        }
+        try (PreparedStatement query = db.prepareStatement("select * from log where uin = ?")) {
+            query.setInt(1, uin);
+            ResultSet rs = query.executeQuery();
+            return resp.resp(rs);
+
+        } catch (SQLException throwable) {
+            logger.error(throwable);
+            throwable.printStackTrace();
+            return resp.resp(500_1);
         }
     }
 
@@ -221,35 +218,34 @@ public class Database {
      * @author gao_cai_sheng
      */
     public String promoteAdmin(String destToken, String nickname, String reason, String token) {
-        if (validate(token)) {
-            try (PreparedStatement query = db
-                .prepareStatement("select * from admin where token = ?");
-                PreparedStatement promote = db.prepareStatement(
-                    "insert into admin(token, nickname, creator, role, reason, lastUpdate)values " +
-                        "(?,?,(select * from ( (select nickname from admin where token = ?) ) as an),"
-                        +
-                        "( ( select * from (select role from admin where token= ?) as ar ) +1 ), ? ,now())")) {
-                query.setString(1, destToken);
-                ResultSet rs = query.executeQuery();
-                if (rs.next()) {
-                    return "{\"code\": 403,\"reason\": \"dest admin token exist\"}";
-                } else {
-                    promote.setString(1, destToken);
-                    promote.setString(2, nickname);
-                    promote.setString(3, token);
-                    promote.setString(4, token);
-                    promote.setString(5, reason);
-                    promote.executeUpdate();
-                    return resp.resp(200);
-                }
-
-            } catch (SQLException throwable) {
-                logger.error(throwable);
-                throwable.printStackTrace();
-                return resp.resp(500);
-            }
-        } else {
+        if (!validate(token)) {
             return resp.resp(401);
+        }
+        try (PreparedStatement query = db
+            .prepareStatement("select * from admin where token = ?");
+            PreparedStatement promote = db.prepareStatement(
+                "insert into admin(token, nickname, creator, role, reason, lastUpdate)values " +
+                    "(?,?,(select * from ( (select nickname from admin where token = ?) ) as an),"
+                    +
+                    "( ( select * from (select role from admin where token= ?) as ar ) +1 ), ? ,now())")) {
+            query.setString(1, destToken);
+            ResultSet rs = query.executeQuery();
+            if (rs.next()) {
+                return "{\"code\": 403,\"reason\": \"dest admin token exist\"}";
+            } else {
+                promote.setString(1, destToken);
+                promote.setString(2, nickname);
+                promote.setString(3, token);
+                promote.setString(4, token);
+                promote.setString(5, reason);
+                promote.executeUpdate();
+                return resp.resp(200);
+            }
+
+        } catch (SQLException throwable) {
+            logger.error(throwable);
+            throwable.printStackTrace();
+            return resp.resp(500);
         }
     }
 
@@ -260,37 +256,36 @@ public class Database {
      * @author gao_cai_sheng
      */
     public String revokeAdmin(String destToken, String token) {
-        if (validate(token)) {
-            try (PreparedStatement query = db
-                .prepareStatement("select role from admin where token = ?");
-                PreparedStatement queryDest = db
-                    .prepareStatement("select role from admin where token = ?");
-                PreparedStatement revoke = db
-                    .prepareStatement("delete from admin where token = ?")) {
-                query.setString(1, token);
-                ResultSet rs = query.executeQuery();
-                rs.next();
-                queryDest.setString(1, destToken);
-                ResultSet destrs = queryDest.executeQuery();
-                if (destrs.next()) {
-                    if (destrs.getInt("role") > rs.getInt("role")) {
-                        revoke.setString(1, destToken);
-                        revoke.executeUpdate();
-                        return resp.resp(200);
-                    } else {
-                        return resp.resp(403);
-                    }
-
-                } else {
-                    return "{\"code\": 403,\"reason\": \"dest admin token is not exist\"}";
-                }
-            } catch (SQLException throwable) {
-                logger.error(throwable);
-                throwable.printStackTrace();
-                return resp.resp(500);
-            }
-        } else {
+        if (!validate(token)) {
             return resp.resp(401);
+        }
+        try (PreparedStatement query = db
+            .prepareStatement("select role from admin where token = ?");
+            PreparedStatement queryDest = db
+                .prepareStatement("select role from admin where token = ?");
+            PreparedStatement revoke = db
+                .prepareStatement("delete from admin where token = ?")) {
+            query.setString(1, token);
+            ResultSet rs = query.executeQuery();
+            rs.next();
+            queryDest.setString(1, destToken);
+            ResultSet destrs = queryDest.executeQuery();
+            if (destrs.next()) {
+                if (destrs.getInt("role") > rs.getInt("role")) {
+                    revoke.setString(1, destToken);
+                    revoke.executeUpdate();
+                    return resp.resp(200);
+                } else {
+                    return resp.resp(403);
+                }
+
+            } else {
+                return "{\"code\": 403,\"reason\": \"dest admin token is not exist\"}";
+            }
+        } catch (SQLException throwable) {
+            logger.error(throwable);
+            throwable.printStackTrace();
+            return resp.resp(500);
         }
     }
 }
