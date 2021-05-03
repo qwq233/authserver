@@ -55,7 +55,7 @@ fun main() {
                 try {
                     val req = JSONObject.parseObject(call.receiveText())
                     val response = Database.getInstance().updateUser(
-                        req.getIntValue("uin"),
+                        req.getLong("uin"),
                         req.getIntValue("status"),
                         req.getString("token"),
                         req.getString("reason")
@@ -99,7 +99,7 @@ fun main() {
             post("/user/query") {
                 try {
                     val req = JSONObject.parseObject(call.receiveText())
-                    val response = Database.getInstance().queryUser(req.getIntValue("uin"))
+                    val response = Database.getInstance().queryUser(req.getLong("uin"))
                     call.respondText(
                         response,
                         ContentType("application", "json"),
@@ -140,7 +140,7 @@ fun main() {
                 try {
                     val req = JSONObject.parseObject(call.receiveText())
                     val response = Database.getInstance().deleteUser(
-                        req.getIntValue("uin"),
+                        req.getLong("uin"),
                         req.getString("token"),
                         req.getString("reason")
                     )
@@ -272,7 +272,7 @@ fun main() {
                 try {
                     val req = JSONObject.parseObject(call.receiveText())
                     val response = Database.getInstance().queryHistory(
-                        req.getIntValue("uin"),
+                        req.getLong("uin"),
                         req.getString("token")
                     )
                     call.respondText(

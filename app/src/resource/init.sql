@@ -23,7 +23,7 @@
 use qn_auth;
 create table user
 (
-    uin        int primary key,
+    uin        long primary key,
     status     int      not null,
     reason     text     not null,
     lastUpdate datetime not null
@@ -41,7 +41,7 @@ create table admin
 create table log
 (
     id        int primary key auto_increment,
-    uin       int      not null,
+    uin       long     not null,
     operator  text     not null,
     operation text     not null,
     changes   text     not null,

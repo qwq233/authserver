@@ -100,7 +100,7 @@ public class Database {
      * @param reason 理由
      * @author gao_cai_sheng
      */
-    public String updateUser(int uin, int status, @NotNull String token,
+    public String updateUser(long uin, int status, @NotNull String token,
         String reason) {
         if (!validate(token)) {
             return resp.resp(401);
@@ -116,7 +116,7 @@ public class Database {
                     + "values (?,(select nickname from admin where token = ?),"
                     + "?,now(),?,?)")
         ) {
-            query.setInt(1, uin);
+            query.setLong(1, uin);
             ResultSet rss = query.executeQuery();
             if (rss.next()) {
                 rss.updateInt("status", status);
@@ -126,14 +126,14 @@ public class Database {
                 log.setString(5, "updateUser");
                 rss.updateRow();
             } else {
-                insert.setInt(1, uin);
+                insert.setLong(1, uin);
                 insert.setInt(2, status);
                 insert.setString(3, reason);
                 log.setString(5, "createUser");
                 log.setString(4, "null -> " + status);
                 insert.executeUpdate();
             }
-            log.setInt(1, uin);
+            log.setLong(1, uin);
             log.setString(2, token);
             log.setString(3, reason);
             log.executeUpdate();
@@ -151,9 +151,9 @@ public class Database {
      * @return -> README.md
      * @author gao_cai_sheng
      */
-    public String queryUser(int uin) {
+    public String queryUser(long uin) {
         try (PreparedStatement query = db.prepareStatement("select * from user where uin = ?")) {
-            query.setInt(1, uin);
+            query.setLong(1, uin);
             ResultSet rs = query.executeQuery();
             if (rs.next()) {
                 return resp.resp(200, rs.getInt("uin"), rs.getString("reason"),
@@ -175,16 +175,16 @@ public class Database {
      * @return 返回值
      * @author gao_cai_sheng
      */
-    public String deleteUser(int uin, @NotNull String token, String reason) {
+    public String deleteUser(long uin, @NotNull String token, String reason) {
         if (!validate(token)) {
             return resp.resp(401);
         }
         try (PreparedStatement delete = db.prepareStatement("delete from user where uin = ?");
             PreparedStatement log = db.prepareStatement(
                 "insert into log(uin, operator,operation, reason, date,changes) values (?,(select nickname from admin where token = ?),'deleteUser',?,now(),?)")) {
-            delete.setInt(1, uin);
+            delete.setLong(1, uin);
             delete.executeUpdate();
-            log.setInt(1, uin);
+            log.setLong(1, uin);
             log.setString(2, token);
             log.setString(3, reason);
             log.setString(4,
@@ -206,12 +206,12 @@ public class Database {
     }
 
 
-    public String queryHistory(int uin, @NotNull String token) {
+    public String queryHistory(long uin, @NotNull String token) {
         if (!validate(token)) {
             return resp.resp(401);
         }
         try (PreparedStatement query = db.prepareStatement("select * from log where uin = ?")) {
-            query.setInt(1, uin);
+            query.setLong(1, uin);
             ResultSet rs = query.executeQuery();
             return resp.resp(rs);
 
