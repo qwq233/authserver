@@ -34,8 +34,9 @@ import org.jetbrains.annotations.NotNull;
 public class Response {
 
     private static final Logger logger = LogManager.getLogger(Response.class);
+
     /**
-     * @param code 状态码 目前可用:200 400 401 403 500
+     * @param code 状态码
      * @return 状态码对应的返回值
      */
     public String resp(int code) {
@@ -55,10 +56,21 @@ public class Response {
     }
 
     /**
-     *
-     * @param code 状态码
-     * @param status 查询状态
-     * @param reason 理由
+     * @param code HTTP 状态码
+     * @return 返回状态的说明
+     */
+    public String status(int code) {
+        return switch (code) {
+            case 400_2 -> "Request Body should be a valid JSON object.";
+            case 500_2 -> "Unknown error";
+            default -> "Unknown error";
+        };
+    }
+
+    /**
+     * @param code       状态码
+     * @param status     查询状态
+     * @param reason     理由
      * @param lastUpdate 上次更新日期
      * @return 应返回值 json
      */

@@ -44,9 +44,14 @@ fun main() {
     val server = embeddedServer(Netty, 10810) {
         routing {
             get("/") {
-                call.respondText("Hello, world!", ContentType.Text.Plain)
+                call.respondText(
+                    "{\"code\":200,\"reason\":\"Everything is ok.\"}",
+                    ContentType("application", "json"),
+                )
             }
-            post("/user/updateUser") {
+
+            // update user
+            post("/user") {
                 try {
                     val req = JSONObject.parseObject(call.receiveText())
                     val response = Database.getInstance().updateUser(
@@ -73,7 +78,7 @@ fun main() {
                     call.respondText(
                         resp.resp(400_2),
                         ContentType("application", "json"),
-                        HttpStatusCode(400, "Request Body should be a valid JSON object.")
+                        HttpStatusCode(400, resp.status(400_2))
                     )
                 } catch (npe: NullPointerException) {
                     call.respondText(
@@ -86,11 +91,12 @@ fun main() {
                     call.respondText(
                         resp.resp(500_2),
                         ContentType("application", "json"),
-                        HttpStatusCode(500, "Unknown error")
+                        HttpStatusCode(500, resp.status(500_2))
                     )
                 }
             }
-            post("/user/queryUser") {
+            // query user
+            post("/user/query") {
                 try {
                     val req = JSONObject.parseObject(call.receiveText())
                     val response = Database.getInstance().queryUser(req.getIntValue("uin"))
@@ -112,7 +118,7 @@ fun main() {
                     call.respondText(
                         resp.resp(400_2),
                         ContentType("application", "json"),
-                        HttpStatusCode(400, "Request Body should be a valid JSON object.")
+                        HttpStatusCode(400, resp.status(400_2))
                     )
                 } catch (npe: NullPointerException) {
                     call.respondText(
@@ -125,11 +131,12 @@ fun main() {
                     call.respondText(
                         resp.resp(500_2),
                         ContentType("application", "json"),
-                        HttpStatusCode(500, "Unknown error")
+                        HttpStatusCode(500, resp.status(500_2))
                     )
                 }
             }
-            post("/user/deleteUser") {
+            // delete user
+            delete("/user") {
                 try {
                     val req = JSONObject.parseObject(call.receiveText())
                     val response = Database.getInstance().deleteUser(
@@ -155,7 +162,7 @@ fun main() {
                     call.respondText(
                         resp.resp(400_2),
                         ContentType("application", "json"),
-                        HttpStatusCode(400, "Request Body should be a valid JSON object.")
+                        HttpStatusCode(400, resp.status(400_2))
                     )
                 } catch (npe: NullPointerException) {
                     call.respondText(
@@ -168,11 +175,12 @@ fun main() {
                     call.respondText(
                         resp.resp(500_2),
                         ContentType("application", "json"),
-                        HttpStatusCode(500, "Unknown error")
+                        HttpStatusCode(500, resp.status(500_2))
                     )
                 }
             }
-            post("/admin/promoteAdmin") {
+            // promote admin
+            post("/admin") {
                 try {
                     val req = JSONObject.parseObject(call.receiveText())
                     val response = Database.getInstance().promoteAdmin(
@@ -193,7 +201,7 @@ fun main() {
                     call.respondText(
                         resp.resp(400_2),
                         ContentType("application", "json"),
-                        HttpStatusCode(400, "Request Body should be a valid JSON object.")
+                        HttpStatusCode(400, resp.status(400_2))
                     )
                 } catch (npe: NullPointerException) {
                     call.respondText(
@@ -212,12 +220,13 @@ fun main() {
                     call.respondText(
                         resp.resp(500_2),
                         ContentType("application", "json"),
-                        HttpStatusCode(500, "Unknown error")
+                        HttpStatusCode(500, resp.status(500_2))
                     )
                 }
 
             }
-            post("/admin/revokeAdmin") {
+            // revoke admin
+            delete("/admin") {
                 try {
                     val req = JSONObject.parseObject(call.receiveText())
                     val response = Database.getInstance().revokeAdmin(
@@ -236,7 +245,7 @@ fun main() {
                     call.respondText(
                         resp.resp(400_2),
                         ContentType("application", "json"),
-                        HttpStatusCode(400, "Request Body should be a valid JSON object.")
+                        HttpStatusCode(400, resp.status(400_2))
                     )
                 } catch (ex: NumberFormatException) {
                     call.respondText(
@@ -255,11 +264,11 @@ fun main() {
                     call.respondText(
                         resp.resp(500_2),
                         ContentType("application", "json"),
-                        HttpStatusCode(500, "Unknown error")
+                        HttpStatusCode(500, resp.status(500_2))
                     )
                 }
             }
-            post("/user/queryHistory") {
+            get("/user/history") {
                 try {
                     val req = JSONObject.parseObject(call.receiveText())
                     val response = Database.getInstance().queryHistory(
@@ -278,7 +287,7 @@ fun main() {
                     call.respondText(
                         resp.resp(400_1),
                         ContentType("application", "json"),
-                        HttpStatusCode(400, "Request Body should be a valid JSON object.")
+                        HttpStatusCode(400, resp.status(400_2))
                     )
                 } catch (npe: NullPointerException) {
                     call.respondText(
@@ -297,7 +306,7 @@ fun main() {
                     call.respondText(
                         resp.resp(500_1),
                         ContentType("application", "json"),
-                        HttpStatusCode(500, "Unknown error")
+                        HttpStatusCode(500, resp.status(500_2))
                     )
                 }
             }
