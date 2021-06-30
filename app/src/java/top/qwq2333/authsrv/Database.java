@@ -156,7 +156,7 @@ public class Database {
             query.setLong(1, uin);
             ResultSet rs = query.executeQuery();
             if (rs.next()) {
-                return resp.resp(200, rs.getInt("uin"), rs.getString("reason"),
+                return resp.resp(200, rs.getInt("status"), rs.getString("reason"),
                     rs.getString("lastUpdate"));
             } else {
                 return "{\"code\": 200,\"status\": 0,\"reason\": \"\",\"lastUpdate\": \"\"}\n";
