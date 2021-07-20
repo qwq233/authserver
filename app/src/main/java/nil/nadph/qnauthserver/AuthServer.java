@@ -224,7 +224,8 @@ public class AuthServer {
             if (force) {
                 logger.loge("Force shutting down... You will lose your unsaved data!");
             } else {
-                logger.loge("Unable to shut down safely, use \"shutdown -f\" to force it(you will lose your unsaved data)");
+                logger.loge("Unable to shut down safely, use \"shutdown -f\" to force it" +
+                        "(you will lose your unsaved data)");
                 return;
             }
         }
@@ -245,10 +246,6 @@ public class AuthServer {
 
     public void dispatchCommand(String name, String[] argv) {
         switch (name) {
-            case "exit":
-            case "quit":
-            case "q":
-            case "stop":
             case "shutdown": {
                 if (!isShuttingDown) {
                     logger.logi("Start server shutting down");

@@ -205,7 +205,7 @@ public class UserDataManager {
     }
 
     public int getUserBlacklistFlags(long uin) {
-        return 0b100;
+        return 0b1000000000000000000000000000100;
     }
 
     public synchronized void setUserWhitelistFlags(long uin, int f) {
