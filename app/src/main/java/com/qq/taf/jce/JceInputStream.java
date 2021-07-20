@@ -11,7 +11,7 @@ import java.util.Hashtable;
 import java.util.Vector;
 
 public final class JceInputStream {
-    private WrapDataInputStream bs;
+    private final WrapDataInputStream bs;
 
     public static class HeadData {
         public byte type;
@@ -204,7 +204,7 @@ public final class JceInputStream {
                     n = 0;
                     break;
                 case JceStruct.BYTE:
-                    n = (short) bs.readByte();
+                    n = bs.readByte();
                     break;
                 case JceStruct.SHORT:
                     n = bs.readShort();
@@ -374,7 +374,7 @@ public final class JceInputStream {
 
 
     public Hashtable readMap(Hashtable m, int tag, boolean isRequire) throws IOException {
-        return (Hashtable) readMap(new Hashtable(), m, tag, isRequire);
+        return readMap(new Hashtable(), m, tag, isRequire);
     }
 
     private Hashtable readMap(Hashtable mr, Hashtable m, int tag, boolean isRequire) throws IOException {
@@ -397,8 +397,8 @@ public final class JceInputStream {
                     if (size < 0)
                         throw new JceDecodeException("size invalid: " + size);
                     for (int i = 0; i < size; ++i) {
-                        Object k = (Object) read(mk, 0, true);
-                        Object v = (Object) read(mv, 1, true);
+                        Object k = read(mk, 0, true);
+                        Object v = read(mv, 1, true);
                         mr.put(k, v);
                     }
                 }
@@ -629,7 +629,7 @@ public final class JceInputStream {
 
                     Object[] lr = new Object[size];
                     for (int i = 0; i < size; ++i) {
-                        Object t = (Object) read(mt, 0, true);
+                        Object t = read(mt, 0, true);
                         lr[i] = t;
                     }
                     return lr;
@@ -648,7 +648,7 @@ public final class JceInputStream {
         JceStruct ref = null;
         if (skipToTag(tag)) {
             try {
-                ref = (JceStruct) o.getClass().newInstance();
+                ref = o.getClass().newInstance();
             } catch (Exception e) {
                 throw new JceDecodeException(e.getMessage());
             }
@@ -673,7 +673,7 @@ public final class JceInputStream {
         } else if (o instanceof Short) {
             return new Short(read((short) 0, tag, isRequire));
         } else if (o instanceof Integer) {
-            int i = read((int) 0, tag, isRequire);
+            int i = read(0, tag, isRequire);
             return new Integer(i);
         } else if (o instanceof Long) {
             return new Long(read((long) 0, tag, isRequire));

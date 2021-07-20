@@ -8,7 +8,7 @@ public class WrapByteArrayOutputStream extends OutputStream {
     /**
      * The buffer where data is stored.
      */
-    protected byte buf[];
+    protected byte[] buf;
 
     /**
      * The number of valid bytes in the buffer.
@@ -61,7 +61,7 @@ public class WrapByteArrayOutputStream extends OutputStream {
         ensureOpen();
         int newcount = count + 1;
         if (newcount > buf.length) {
-            byte newbuf[] = new byte[Math.max(buf.length << 1, newcount)];
+            byte[] newbuf = new byte[Math.max(buf.length << 1, newcount)];
             System.arraycopy(buf, 0, newbuf, 0, count);
             buf = newbuf;
         }
@@ -77,7 +77,7 @@ public class WrapByteArrayOutputStream extends OutputStream {
      * @param   off   the start offset in the data.
      * @param   len   the number of bytes to write.
      */
-    public synchronized void write(byte b[], int off, int len) {
+    public synchronized void write(byte[] b, int off, int len) {
         ensureOpen();
         if ((off < 0) || (off > b.length) || (len < 0) ||
             ((off + len) > b.length) || ((off + len) < 0)) {
@@ -87,7 +87,7 @@ public class WrapByteArrayOutputStream extends OutputStream {
         }
         int newcount = count + len;
         if (newcount > buf.length) {
-            byte newbuf[] = new byte[Math.max(buf.length << 1, newcount)];
+            byte[] newbuf = new byte[Math.max(buf.length << 1, newcount)];
             System.arraycopy(buf, 0, newbuf, 0, count);
             buf = newbuf;
         }
@@ -116,11 +116,11 @@ public class WrapByteArrayOutputStream extends OutputStream {
      * @return  the current contents of this output stream, as a byte array.
      * @see     java.io.ByteArrayOutputStream#size()
      */
-    public synchronized byte toByteArray()[] {
+    public synchronized byte[] toByteArray() {
         if (isClosed && buf.length == count) {
             return buf;
         } else {
-            byte newbuf[] = new byte[count];
+            byte[] newbuf = new byte[count];
             System.arraycopy(buf, 0, newbuf, 0, count);
             return newbuf;
         }

@@ -110,7 +110,7 @@ public class UniAttribute extends JceStruct {
 				JceInputStream _is = new JceInputStream(data);
 				_is.setServerEncoding(encodeName);
 				// System.out.println("try to read proxy "+proxy.getClass().getName()+" name is "+className+" data:"+WupHexUtil.bytes2HexStr(data));
-				return (Object) _is.read(proxy, 0, true);
+				return _is.read(proxy, 0, true);
 			} catch (Exception ex) {
 				ex.printStackTrace();
 				throw new ObjectCreateException(ex);
@@ -120,9 +120,7 @@ public class UniAttribute extends JceStruct {
 
 	
 	public void remove(String name) throws ObjectCreateException {
-		if (_data.containsKey(name)) {
-			_data.remove(name);
-		} 
+		_data.remove(name);
 	}
 	/**
 	 * 删除一个元素
@@ -149,7 +147,7 @@ public class UniAttribute extends JceStruct {
 				//Object proxy = (Object) BasicClassTypeUtil.createClassByUni(className);
 				JceInputStream _is = new JceInputStream(data);
 				_is.setServerEncoding(encodeName);
-				return (Object) _is.read(proxy, 0, true);
+				return _is.read(proxy, 0, true);
 			} catch (Exception ex) {
 				ex.printStackTrace();
 				throw new ObjectCreateException(ex);
@@ -221,7 +219,7 @@ public class UniAttribute extends JceStruct {
 		Hashtable h = new Hashtable();
 		h.put("", new byte[0]);
 		_tempdata.put("", h);
-		_data = (Hashtable) _is.readMap(_tempdata, 0, false);
+		_data = _is.readMap(_tempdata, 0, false);
 	}
 
 	// //////////////////////////////////////////////////////////////////////////////////////////
@@ -247,9 +245,9 @@ public class UniAttribute extends JceStruct {
 		String __var_1 = "";
 		Hashtable __var_2 = new Hashtable();
 		String __var_3 = "";
-		byte[] __var_4 = (byte[]) new byte[1];
+		byte[] __var_4 = new byte[1];
 		byte __var_5 = 0;
-		((byte[]) __var_4)[0] = __var_5;
+		__var_4[0] = __var_5;
 		__var_2.put(__var_3, __var_4);
 		_data.put(__var_1, __var_2);
 		_data = (Hashtable) _is.read(_data, 0, true);

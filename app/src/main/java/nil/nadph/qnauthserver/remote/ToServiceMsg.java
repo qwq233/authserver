@@ -20,10 +20,6 @@ public class ToServiceMsg extends JceStruct {
         uniSeq = r.nextInt();
     }
 
-    public ToServiceMsg(String name, String cmd, byte[] b) {
-        this(name, cmd, b, 0L);
-    }
-
     public ToServiceMsg(String name, String cmd, byte[] b, long t) {
         uniSeq = r.nextInt();
         serviceName = name;
@@ -32,36 +28,13 @@ public class ToServiceMsg extends JceStruct {
         token = t;
     }
 
-    public void setBody(byte[] body) {
-        this.body = body;
-    }
-
     public byte[] getBody() {
         return body;
     }
 
-    public void setToken(long token) {
-        this.token = token;
-    }
-
-    public long getToken() {
-        return token;
-    }
-
-    public void setUniSeq(int uniSeq) {
-        this.uniSeq = uniSeq;
-    }
 
     public int getUniSeq() {
         return uniSeq;
-    }
-
-    public void setServiceCmd(String serviceCmd) {
-        this.serviceCmd = serviceCmd;
-    }
-
-    public void setServiceName(String serviceName) {
-        this.serviceName = serviceName;
     }
 
     public String getServiceCmd() {

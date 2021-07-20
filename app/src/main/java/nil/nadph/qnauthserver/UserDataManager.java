@@ -17,10 +17,10 @@ public class UserDataManager {
     private final ConcurrentHashMap<Long, AdminInfo> onlineOp = new ConcurrentHashMap<>();
     private final ConcurrentHashMap<String, Long> opKeys = new ConcurrentHashMap<>();
     private final Object rwUinLock = new Object();
-    private BusinessHandler businessHandler;
-    private File keyFile;
-    private File uinListFile;
-    private Logger logger;
+    private final BusinessHandler businessHandler;
+    private final File keyFile;
+    private final File uinListFile;
+    private final Logger logger;
 
     public UserDataManager(BusinessHandler h) {
         businessHandler = h;
@@ -201,141 +201,21 @@ public class UserDataManager {
     }
 
     public int getUserWhitelistFlags(long uin) {
-        UserInfo info = users.get(uin);
-        if (info == null) return 0;
-        return info.whitelistFlags;
+        return 0;
     }
 
     public int getUserBlacklistFlags(long uin) {
-        UserInfo info = users.get(uin);
-        if (info == null) return 0;
-        return info.blacklistFlags;
+        return 0b100;
     }
 
     public synchronized void setUserWhitelistFlags(long uin, int f) {
-        UserInfo info = users.get(uin);
-        if (info != null) {
-            info.whitelistFlags = f;
-        } else {
-            info = new UserInfo();
-            users.put(uin, info);
-            info.uin = uin;
-            info.whitelistFlags = f;
-            info.blacklistFlags = 0;
-        }
     }
 
     public synchronized void setUserBlacklistFlags(long uin, int f) {
-        UserInfo info = users.get(uin);
-        if (info != null) {
-            info.blacklistFlags = f;
-        } else {
-            info = new UserInfo();
-            users.put(uin, info);
-            info.uin = uin;
-            info.whitelistFlags = 0;
-            info.blacklistFlags = f;
-        }
-    }
-
-    public synchronized void batchSetUserFlags(BatchSetUserStatusResp resp, int count, long[] vecUin, String comment, int bs, int bc, int ws, int wc) {
-        if (count != vecUin.length) {
-            resp.result = BatchQueryUserStatusResp.E_INVALID_ARG;
-            resp.msg = "array length mismatch";
-            return;
-        }
-        String timeTag = new SimpleDateFormat("yyyy-MM-dd/HH:mm:ss ").format(new Date());
-        resp.vecUin = vecUin;
-        resp.prevBlackFlags = new int[count];
-        resp.prevWhiteFlags = new int[count];
-        resp.currBlackFlags = new int[count];
-        resp.currWhiteFlags = new int[count];
-        resp.comments = new String[count];
-        resp.count = count;
-        for (int i = 0; i < count; i++) {
-            long uin = vecUin[i];
-            UserInfo info = users.get(uin);
-            if (info == null) {
-                info = new UserInfo();
-                users.put(uin, info);
-                info.uin = uin;
-                info.blacklistFlags = bs;
-                info.whitelistFlags = ws;
-                info.comment = timeTag + comment + "\n";
-                resp.currBlackFlags[i] = bs;
-                resp.currWhiteFlags[i] = ws;
-                resp.comments[i] = info.comment;
-            } else {
-                resp.prevBlackFlags[i] = info.blacklistFlags;
-                resp.prevWhiteFlags[i] = info.whitelistFlags;
-                info.blacklistFlags |= bs;
-                info.whitelistFlags |= ws;
-                info.blacklistFlags &= ~bc;
-                info.whitelistFlags &= ~wc;
-                info.comment += timeTag + comment + "\n";
-                resp.currBlackFlags[i] = info.blacklistFlags;
-                resp.currWhiteFlags[i] = info.whitelistFlags;
-                resp.comments[i] = info.comment;
-            }
-        }
-    }
-
-    public void batchQueryUserStatus(BatchQueryUserStatusResp resp, int count, long[] vecUin) {
-        if (count != vecUin.length) {
-            resp.result = BatchQueryUserStatusResp.E_INVALID_ARG;
-            resp.msg = "array length mismatch";
-            return;
-        }
-        resp.vecUin = vecUin;
-        resp.blackFlags = new int[count];
-        resp.whiteFlags = new int[count];
-        resp.onlineStatus = new byte[count];
-        resp.comments = new String[count];
-        resp.count = count;
-        for (int i = 0; i < count; i++) {
-            UserInfo info = users.get(vecUin[i]);
-            if (info == null) {
-                resp.comments[i] = "";
-            } else {
-                resp.blackFlags[i] = info.blacklistFlags;
-                resp.whiteFlags[i] = info.whitelistFlags;
-                resp.comments[i] = info.comment;
-            }
-        }
     }
 
     public int checkAdminAccess(long token) {
-        AdminInfo ai = onlineOp.get(token);
-        if (ai == null) return 0;
-        long t = System.currentTimeMillis();
-        if (ai.expire < t) {
-            onlineOp.remove(token);
-            return 0;
-        }
-        return 1;
-    }
-
-    public long handleAdminLogin(String key) {
-        Long lastObj = opKeys.get(key);
-        if (lastObj == null) return 0;
-        long last = lastObj;
-        if (last != 0) {
-            onlineOp.remove(last);
-        }
-        AdminInfo ai = new AdminInfo();
-        ai.key = key;
-        long t = System.currentTimeMillis();
-        ai.loginTime = t;
-        ai.expire = t + 1000 * 3600;
-        long token = new Random().nextLong();
-        ai.token = token;
-        opKeys.put(key, token);
-        onlineOp.put(token, ai);
-        return token;
-    }
-
-    public void handleAdminLogout(long token) {
-        onlineOp.remove(token);
+        return 0;
     }
 
 

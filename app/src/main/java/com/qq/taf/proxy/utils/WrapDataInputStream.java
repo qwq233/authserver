@@ -58,7 +58,7 @@ public class WrapDataInputStream extends InputStream implements DataInput {
      * @exception IOException  if an I/O error occurs.
      * @see        InputStream#read(byte[], int, int)
      */
-    public final int read(byte b[]) throws IOException {
+    public final int read(byte[] b) throws IOException {
         return in.read(b, 0, b.length);
     }
 
@@ -78,7 +78,7 @@ public class WrapDataInputStream extends InputStream implements DataInput {
      *             the stream has been reached.
      * @exception IOException  if an I/O error occurs.
      */
-    public final int read(byte b[], int off, int len) throws IOException {
+    public final int read(byte[] b, int off, int len) throws IOException {
         return in.read(b, off, len);
     }
 
@@ -94,7 +94,7 @@ public class WrapDataInputStream extends InputStream implements DataInput {
      *               reading all the bytes.
      * @exception IOException   if an I/O error occurs.
      */
-    public final void readFully(byte b[]) throws IOException {
+    public final void readFully(byte[] b) throws IOException {
         readFully(b, 0, b.length);
     }
 
@@ -112,7 +112,7 @@ public class WrapDataInputStream extends InputStream implements DataInput {
      *               reading all the bytes.
      * @exception IOException   if an I/O error occurs.
      */
-    public final void readFully(byte b[], int off, int len) throws IOException {
+    public final void readFully(byte[] b, int off, int len) throws IOException {
         if (len < 0) {
             throw new IndexOutOfBoundsException();
         }
@@ -381,8 +381,8 @@ public class WrapDataInputStream extends InputStream implements DataInput {
      */
     public final static String readUTF(DataInput in) throws IOException {
         int utflen = in.readUnsignedShort();
-        char str[] = new char[utflen];
-        byte bytearr [] = new byte[utflen];
+        char[] str = new char[utflen];
+        byte[] bytearr = new byte[utflen];
         int c, char2, char3;
         int count = 0;
         int strlen = 0;
@@ -402,7 +402,7 @@ public class WrapDataInputStream extends InputStream implements DataInput {
                     count += 2;
                     if (count > utflen)
                         throw new UTFDataFormatException();
-                    char2 = (int) bytearr[count-1];
+                    char2 = bytearr[count-1];
                     if ((char2 & 0xC0) != 0x80)
                         throw new UTFDataFormatException();
                     str[strlen++] = (char)(((c & 0x1F) << 6) | (char2 & 0x3F));
@@ -412,8 +412,8 @@ public class WrapDataInputStream extends InputStream implements DataInput {
                     count += 3;
                     if (count > utflen)
                         throw new UTFDataFormatException();
-                    char2 = (int) bytearr[count-2];
-                    char3 = (int) bytearr[count-1];
+                    char2 = bytearr[count-2];
+                    char3 = bytearr[count-1];
                     if (((char2 & 0xC0) != 0x80) || ((char3 & 0xC0) != 0x80))
                         throw new UTFDataFormatException();
                     str[strlen++] = (char)(((c     & 0x0F) << 12) |

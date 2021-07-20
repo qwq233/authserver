@@ -67,7 +67,6 @@ public class AuthServer {
                 }
             }}, new SecureRandom());
             serverSocket = (SSLServerSocket) ctx.getServerSocketFactory().createServerSocket(port);
-            //serverSocket.setNeedClientAuth(true);
             logger.logi("Server is listening at 0.0.0.0:" + port);
             serverStartTime = System.currentTimeMillis();
             tp.execute(new Runnable() {
@@ -220,7 +219,6 @@ public class AuthServer {
     public void shutdown(boolean force) {
         if (isShuttingDown) return;
         try {
-            businessHandler.getUserManager().requestSaveUinDat();
         } catch (Throwable e) {
             logger.loge(e);
             if (force) {

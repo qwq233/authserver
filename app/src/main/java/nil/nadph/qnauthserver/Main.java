@@ -6,13 +6,10 @@ public class Main {
     public static void main(String[] args) {
         final LinuxConsole console = new LinuxConsole();
         Logger logger = new Logger(console);
-        Thread.setDefaultUncaughtExceptionHandler(new Thread.UncaughtExceptionHandler() {
-            @Override
-            public void uncaughtException(Thread thread, Throwable throwable) {
-                console.shutdown();
-                throwable.printStackTrace();
-                System.exit(2);
-            }
+        Thread.setDefaultUncaughtExceptionHandler((thread, throwable) -> {
+            console.shutdown();
+            throwable.printStackTrace();
+            System.exit(2);
         });
         console.printf("Starting QNotified Auth Server at port %d...\n", LISTEN_PORT);
         try {

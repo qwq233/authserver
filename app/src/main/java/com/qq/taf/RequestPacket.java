@@ -8,17 +8,17 @@ public final class RequestPacket extends com.qq.taf.jce.JceStruct
 
     public byte cPacketType = (byte)0;
 
-    public int iMessageType = (int)0;
+    public int iMessageType = 0;
 
-    public int iRequestId = (int)0;
+    public int iRequestId = 0;
 
-    public String sServantName = (String)"";
+    public String sServantName = "";
 
-    public String sFuncName = (String)"";
+    public String sFuncName = "";
 
     public byte[] sBuffer;
 
-    public int iTimeout = (int)0;
+    public int iTimeout = 0;
 
     public java.util.Hashtable context;
 
@@ -77,30 +77,30 @@ public final class RequestPacket extends com.qq.taf.jce.JceStruct
     public void readFrom(com.qq.taf.jce.JceInputStream _is) throws IOException
     {
         iVersion = 0;
-        iVersion = (short) _is.read(iVersion, 1, true);
+        iVersion = _is.read(iVersion, 1, true);
 
         cPacketType = 0;
-        cPacketType = (byte) _is.read(cPacketType, 2, true);
+        cPacketType = _is.read(cPacketType, 2, true);
 
         iMessageType = 0;
-        iMessageType = (int) _is.read(iMessageType, 3, true);
+        iMessageType = _is.read(iMessageType, 3, true);
 
         iRequestId = 0;
-        iRequestId = (int) _is.read(iRequestId, 4, true);
+        iRequestId = _is.read(iRequestId, 4, true);
 
         sServantName = "";
-        sServantName = (String) _is.read(sServantName, 5, true);
+        sServantName = _is.read(sServantName, 5, true);
 
         sFuncName = "";
-        sFuncName = (String) _is.read(sFuncName, 6, true);
+        sFuncName = _is.read(sFuncName, 6, true);
 
-        sBuffer = (byte[]) new byte[1];
+        sBuffer = new byte[1];
         byte __var_1 = 0;
-        ((byte[])sBuffer)[0] = __var_1;
-        sBuffer = (byte[]) _is.read(sBuffer, 7, true);
+        sBuffer[0] = __var_1;
+        sBuffer = _is.read(sBuffer, 7, true);
 
         iTimeout = 0;
-        iTimeout = (int) _is.read(iTimeout, 8, true);
+        iTimeout = _is.read(iTimeout, 8, true);
 
         context = new java.util.Hashtable();
         String __var_2 = "";

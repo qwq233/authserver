@@ -44,7 +44,7 @@ public class BasicClassTypeUtil {
 				splitPoint = mapPoint;
 			}
 		}
-		addType(type, fullType.substring(point, fullType.length()));
+		addType(type, fullType.substring(point));
 		return type;
 	}
 
@@ -163,11 +163,11 @@ public class BasicClassTypeUtil {
 
 	public static Object createClassByName(String name) throws ObjectCreateException {
 		if (name.equals("java.lang.Integer")) {
-			return new Integer(0);
+			return Integer.parseInt("0");
 		} else if (name.equals("java.lang.Boolean")) {
-			return new Boolean(false);
+			return Boolean.FALSE;
 		} else if (name.equals("java.lang.Byte")) {
-			return new Byte((byte) 0);
+			return (byte) 0;
 		} 
 //		else if (name.equals("java.lang.Double")) {
 //			return new Double(0);
@@ -175,9 +175,9 @@ public class BasicClassTypeUtil {
 //			return new Float(0);
 //		}
 		else if (name.equals("java.lang.Long")) {
-			return new Long(0);
+			return Long.getLong("0");
 		} else if (name.equals("java.lang.Short")) {
-			return new Short((short) 0);
+			return Short.parseShort("0");
 		} else if (name.equals("java.lang.Character")) {
 			throw new IllegalArgumentException("can not support java.lang.Character");
 		} else if (name.equals("java.lang.String")) {
@@ -286,10 +286,7 @@ public class BasicClassTypeUtil {
 			return true;
 		} else if (name.equals("Short")) {
 			return true;
-		} else if (name.equals("Char")) {
-			return true;
-		}
-		return false;
+		} else return name.equals("Char");
 	}
 
 	public static String getClassTransName(String name) {

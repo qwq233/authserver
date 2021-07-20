@@ -11,8 +11,8 @@ import java.util.Hashtable;
 import java.util.Vector;
 
 public final class JceOutputStream {
-	private DataOutputStream bs;
-	private ByteArrayOutputStream out = new ByteArrayOutputStream();
+	private final DataOutputStream bs;
+	private final ByteArrayOutputStream out = new ByteArrayOutputStream();
 
 	public JceOutputStream(int capacity, String encode) {
 		// 忽略capacity

@@ -12,7 +12,7 @@ import java.util.Hashtable;
 
 public class UniPacket extends UniAttribute {
 
-	private RequestPacket _package = new RequestPacket();
+	private final RequestPacket _package = new RequestPacket();
 
 	public final static int UniPacketHeadSize = 4 ;
 

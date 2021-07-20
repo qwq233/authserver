@@ -1,10 +1,6 @@
 package nil.nadph.qnauthserver;
 
-
-import com.qq.taf.jce.JceOutputStream;
-
 import java.text.SimpleDateFormat;
-import java.util.Arrays;
 import java.util.Date;
 
 public class Test {

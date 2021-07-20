@@ -11,7 +11,7 @@ public class WrapByteArrayInputStream extends InputStream {
 	 * only bytes that can ever be read from the stream; element
 	 * <code>buf[pos]</code> is the next byte to be read.
 	 */
-	protected byte buf[];
+	protected byte[] buf;
 
 	public WrapByteArrayInputStream duplicate() {
 		WrapByteArrayInputStream r = new WrapByteArrayInputStream();
@@ -75,7 +75,7 @@ public class WrapByteArrayInputStream extends InputStream {
 	private WrapByteArrayInputStream() {
 	}
 
-    public WrapByteArrayInputStream(byte buf[]) {
+    public WrapByteArrayInputStream(byte[] buf) {
         this.buf = buf;
         this.pos = 0;
         this.count = buf.length;
@@ -100,7 +100,7 @@ public class WrapByteArrayInputStream extends InputStream {
 	 * @param length
 	 *            the maximum number of bytes to read from the buffer.
 	 */
-	public WrapByteArrayInputStream(byte buf[], int offset, int length) {
+	public WrapByteArrayInputStream(byte[] buf, int offset, int length) {
 		this.buf = buf;
 		this.pos = offset;
 		this.count = Math.min(offset + length, buf.length);
@@ -146,7 +146,7 @@ public class WrapByteArrayInputStream extends InputStream {
 	 *         <code>-1</code> if there is no more data because the end of the
 	 *         stream has been reached.
 	 */
-	public synchronized int read(byte b[], int off, int len) {
+	public synchronized int read(byte[] b, int off, int len) {
 		if (b == null) {
 			throw new NullPointerException();
 		} else if ((off < 0) || (off > b.length) || (len < 0)

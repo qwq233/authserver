@@ -30,8 +30,7 @@ public class WupHexUtil {
 
 	/**
 	 * 将字节数组转成Hex String
-	 * 
-	 * @param b
+	 *
 	 * @return String
 	 */
 	public static String bytes2HexStr(byte[] bytes) {
