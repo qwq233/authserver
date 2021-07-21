@@ -1,13 +1,13 @@
 /*
- * QNotified - An Xposed module for QQ/TIM
- * Copyright (C) 2019-2021 dmca@ioctl.cc
- * https://github.com/ferredoxin/QNotified
+ * qwq233
+ * Copyright (C) 2019-2021 qwq233@qwq2333.top
+ * https://qwq2333.top
  *
  * This software is non-free but opensource software: you can redistribute it
  * and/or modify it under the terms of the GNU Affero General Public License
  * as published by the Free Software Foundation; either
  * version 3 of the License, or any later version and our eula as published
- * by ferredoxin.
+ * by qwq233.
  *
  * This software is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -17,36 +17,31 @@
  * You should have received a copy of the GNU Affero General Public License
  * and eula along with this software.  If not, see
  * <https://www.gnu.org/licenses/>
- * <https://github.com/ferredoxin/QNotified/blob/master/LICENSE.md>.
+ * <https://github.com/qwq233/qwq233/blob/master/eula.md>.
  */
 package top.qwq2333.authsrv;
 
 import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONException;
 import com.zaxxer.hikari.HikariDataSource;
-import java.sql.Connection;
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
-import java.sql.SQLException;
-import java.sql.Timestamp;
 import kotlin.text.Regex;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.jetbrains.annotations.NotNull;
 import top.qwq2333.authsrv.data.Response;
 
+import java.sql.*;
+
 public class Database {
 
     public static final int MAX_SIZE = 20;
-    private static final Logger logger = LogManager.getLogger(Database.class);
+    private static final Logger logger = LogManager.getLogger(MainKt.class);
     private static final Database[] instance = new Database[MAX_SIZE];
     private static int pos = 0;
     private final Connection db;
-    private final Response resp;
 
     private Database(Connection db) {
         this.db = db;
-        this.resp = new Response();
     }
 
     public static void init(HikariDataSource db) {
@@ -87,8 +82,10 @@ public class Database {
         } catch (SQLException ex) {
             logger.error(ex);
             ex.printStackTrace();
+            MainKt.addErrorCount();
             return false;
         } catch (NullPointerException npe) {
+            MainKt.addErrorCount();
             return false;
         }
     }
@@ -101,9 +98,9 @@ public class Database {
      * @author gao_cai_sheng
      */
     public String updateUser(long uin, int status, @NotNull String token,
-        String reason) {
+                             String reason) {
         if (!validate(token)) {
-            return resp.resp(401);
+            return Response.resp(401);
         }
         try (
             PreparedStatement query = db.prepareCall("select * from user where uin = ?",
@@ -137,11 +134,12 @@ public class Database {
             log.setString(2, token);
             log.setString(3, reason);
             log.executeUpdate();
-            return resp.resp(200);
+            return Response.resp(200);
         } catch (SQLException ex) {
+            MainKt.addErrorCount();
             logger.error(ex);
             ex.printStackTrace();
-            return resp.resp(500);
+            return Response.resp(500);
         }
 
     }
@@ -156,15 +154,16 @@ public class Database {
             query.setLong(1, uin);
             ResultSet rs = query.executeQuery();
             if (rs.next()) {
-                return resp.resp(200, rs.getInt("status"), rs.getString("reason"),
+                return Response.resp(200, rs.getInt("status"), rs.getString("reason"),
                     rs.getString("lastUpdate"));
             } else {
                 return "{\"code\": 200,\"status\": 0,\"reason\": \"\",\"lastUpdate\": \"\"}\n";
             }
         } catch (SQLException ex) {
+            MainKt.addErrorCount();
             logger.error(ex);
             ex.printStackTrace();
-            return resp.resp(500);
+            return Response.resp(500);
         }
     }
 
@@ -177,11 +176,12 @@ public class Database {
      */
     public String deleteUser(long uin, @NotNull String token, String reason) {
         if (!validate(token)) {
-            return resp.resp(401);
+            return Response.resp(401);
         }
         try (PreparedStatement delete = db.prepareStatement("delete from user where uin = ?");
-            PreparedStatement log = db.prepareStatement(
-                "insert into log(uin, operator,operation, reason, date,changes) values (?,(select nickname from admin where token = ?),'deleteUser',?,now(),?)")) {
+             PreparedStatement log = db.prepareStatement(
+                 "insert into log(uin, operator,operation, reason, date,changes) " +
+                     "values (?,(select nickname from admin where token = ?),'deleteUser',?,now(),?)")) {
             delete.setLong(1, uin);
             delete.executeUpdate();
             log.setLong(1, uin);
@@ -191,34 +191,37 @@ public class Database {
                 JSON.parseObject(queryUser(uin)).getIntValue("status")
                     + " -> null");
             log.executeUpdate();
-            return resp.resp(200);
+            return Response.resp(200);
         } catch (SQLException throwable) {
+            MainKt.addErrorCount();
             logger.error(throwable);
             throwable.printStackTrace();
-            return resp.resp(500);
+            return Response.resp(500);
         } catch (JSONException js) {
-            return resp.resp(400_2);
+            MainKt.addErrorCount();
+            return Response.resp(400_2);
         } catch (Exception ex) {
+            MainKt.addErrorCount();
             logger.error(ex);
             ex.printStackTrace();
-            return resp.resp(500_2);
+            return Response.resp(500_2);
         }
     }
 
 
     public String queryHistory(long uin, @NotNull String token) {
         if (!validate(token)) {
-            return resp.resp(401);
+            return Response.resp(401);
         }
         try (PreparedStatement query = db.prepareStatement("select * from log where uin = ?")) {
             query.setLong(1, uin);
             ResultSet rs = query.executeQuery();
-            return resp.resp(rs);
-
+            return Response.resp(rs);
         } catch (SQLException throwable) {
+            MainKt.addErrorCount();
             logger.error(throwable);
             throwable.printStackTrace();
-            return resp.resp(500_1);
+            return Response.resp(500_1);
         }
     }
 
@@ -232,17 +235,17 @@ public class Database {
      * @author gao_cai_sheng
      */
     public String promoteAdmin(@NotNull String destToken, String nickname, String reason,
-        @NotNull String token) {
+                               @NotNull String token) {
         if (!validate(token)) {
-            return resp.resp(401);
+            return Response.resp(401);
         }
         try (PreparedStatement query = db
             .prepareStatement("select * from admin where token = ?");
-            PreparedStatement promote = db.prepareStatement(
-                "insert into admin(token, nickname, creator, role, reason, lastUpdate)values " +
-                    "(?,?,(select * from ( (select nickname from admin where token = ?) ) as an),"
-                    +
-                    "( ( select * from (select role from admin where token= ?) as ar ) +1 ), ? ,now())")) {
+             PreparedStatement promote = db.prepareStatement(
+                 "insert into admin(token, nickname, creator, role, reason, lastUpdate)values " +
+                     "(?,?,(select * from ( (select nickname from admin where token = ?) ) as an),"
+                     +
+                     "( ( select * from (select role from admin where token= ?) as ar ) +1 ), ? ,now())")) {
             query.setString(1, destToken);
             ResultSet rs = query.executeQuery();
             if (rs.next()) {
@@ -254,13 +257,14 @@ public class Database {
                 promote.setString(4, token);
                 promote.setString(5, reason);
                 promote.executeUpdate();
-                return resp.resp(200);
+                return Response.resp(200);
             }
 
         } catch (SQLException throwable) {
+            MainKt.addErrorCount();
             logger.error(throwable);
             throwable.printStackTrace();
-            return resp.resp(500);
+            return Response.resp(500);
         }
     }
 
@@ -272,14 +276,14 @@ public class Database {
      */
     public String revokeAdmin(String destToken, String token) {
         if (!validate(token)) {
-            return resp.resp(401);
+            return Response.resp(401);
         }
         try (PreparedStatement query = db
             .prepareStatement("select role from admin where token = ?");
-            PreparedStatement queryDest = db
-                .prepareStatement("select role from admin where token = ?");
-            PreparedStatement revoke = db
-                .prepareStatement("delete from admin where token = ?")) {
+             PreparedStatement queryDest = db
+                 .prepareStatement("select role from admin where token = ?");
+             PreparedStatement revoke = db
+                 .prepareStatement("delete from admin where token = ?")) {
             query.setString(1, token);
             ResultSet rs = query.executeQuery();
             rs.next();
@@ -289,18 +293,19 @@ public class Database {
                 if (destrs.getInt("role") > rs.getInt("role")) {
                     revoke.setString(1, destToken);
                     revoke.executeUpdate();
-                    return resp.resp(200);
+                    return Response.resp(200);
                 } else {
-                    return resp.resp(403);
+                    return Response.resp(403);
                 }
 
             } else {
                 return "{\"code\": 403,\"reason\": \"dest admin token is not exist\"}";
             }
         } catch (SQLException throwable) {
+            MainKt.addErrorCount();
             logger.error(throwable);
             throwable.printStackTrace();
-            return resp.resp(500);
+            return Response.resp(500);
         }
     }
 }

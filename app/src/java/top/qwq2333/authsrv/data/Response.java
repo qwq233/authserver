@@ -1,13 +1,13 @@
 /*
- * QNotified - An Xposed module for QQ/TIM
- * Copyright (C) 2019-2021 dmca@ioctl.cc
- * https://github.com/ferredoxin/QNotified
+ * qwq233
+ * Copyright (C) 2019-2021 qwq233@qwq2333.top
+ * https://qwq2333.top
  *
  * This software is non-free but opensource software: you can redistribute it
  * and/or modify it under the terms of the GNU Affero General Public License
  * as published by the Free Software Foundation; either
  * version 3 of the License, or any later version and our eula as published
- * by ferredoxin.
+ * by qwq233.
  *
  * This software is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -17,29 +17,32 @@
  * You should have received a copy of the GNU Affero General Public License
  * and eula along with this software.  If not, see
  * <https://www.gnu.org/licenses/>
- * <https://github.com/ferredoxin/QNotified/blob/master/LICENSE.md>.
+ * <https://github.com/qwq233/qwq233/blob/master/eula.md>.
  */
 
 package top.qwq2333.authsrv.data;
 
 import com.alibaba.fastjson.JSONArray;
 import com.alibaba.fastjson.JSONObject;
-import java.sql.ResultSet;
-import java.sql.ResultSetMetaData;
-import java.sql.SQLException;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.jetbrains.annotations.NotNull;
+import top.qwq2333.authsrv.MainKt;
+
+import java.sql.ResultSet;
+import java.sql.ResultSetMetaData;
+import java.sql.SQLException;
 
 public class Response {
 
-    private static final Logger logger = LogManager.getLogger(Response.class);
+    private static final Logger logger = LogManager.getLogger(MainKt.class);
 
     /**
      * @param code 状态码
      * @return 状态码对应的返回值
      */
-    public String resp(int code) {
+    public static String resp(int code) {
+        MainKt.addRequestCount();
         return switch (code) {
             case 200 -> "{\"code\": 200, \"reason\": \"\"}";
             case 400 -> "{\"code\": 400,\"reason\": \"Request body is empty.\"}";
@@ -59,7 +62,8 @@ public class Response {
      * @param code HTTP 状态码
      * @return 返回状态的说明
      */
-    public String status(int code) {
+    public static String status(int code) {
+        MainKt.addRequestCount();
         return switch (code) {
             case 400_2 -> "Request Body should be a valid JSON object.";
             case 500_2 -> "Unknown error";
@@ -74,7 +78,8 @@ public class Response {
      * @param lastUpdate 上次更新日期
      * @return 应返回值 json
      */
-    public String resp(int code, int status, String reason, String lastUpdate) {
+    public static String resp(int code, int status, String reason, String lastUpdate) {
+        MainKt.addRequestCount();
         JSONObject response = new JSONObject();
         response.put("code", code);
         response.put("status", status);
@@ -83,7 +88,10 @@ public class Response {
         return response.toJSONString();
     }
 
-    public String resp(@NotNull ResultSet rs) {
+    /*
+     * @param rs history result set
+     * */
+    public static String resp(@NotNull ResultSet rs) {
         try {
             JSONArray array = new JSONArray();
             ResultSetMetaData metaData = rs.getMetaData();
@@ -97,11 +105,12 @@ public class Response {
                 }
                 array.add(jsonObj);
             }
+            MainKt.addRequestCount();
             return "{\"code\":200,\"history\":" + array + "}";
         } catch (SQLException throwables) {
             throwables.printStackTrace();
             logger.error(throwables);
-            return this.resp(500_1);
+            return Response.resp(500_1);
         }
     }
 }
