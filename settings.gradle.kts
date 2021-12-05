@@ -6,6 +6,9 @@
  * Detailed information about configuring a multi-project build in Gradle can be found
  * in the user manual at https://docs.gradle.org/6.8.1/userguide/multi_project_builds.html
  */
+plugins {
+    id("de.fayard.refreshVersions") version "0.23.0"
+}
 
-rootProject.name = 'QN_AuthServer'
-include('app')
+rootProject.name = "QN_AuthServer"
+include("app")
