@@ -321,39 +321,17 @@ public class Database {
     }
 
     /**
-     * 收集发送卡片信息
-     *
-     * @param uin     qq号
-     * @param cardMsg 卡片信息
-     * @return 返回值
-     */
-    public String sendCard(long uin, String cardMsg) {
-        try(PreparedStatement sendCard = db.prepareStatement(
-            "insert into card (uin, cardMsg, type, date) values(?,?,\"sendCard\",now()) ")){
-            sendCard.setLong(1,uin);
-            sendCard.setString(2,cardMsg);
-            sendCard.executeUpdate();
-            return Response.resp(200);
-        } catch (SQLException throwable) {
-            MainKt.addErrorCount();
-            logger.error(throwable);
-            throwable.printStackTrace();
-            return Response.resp(500);
-        }
-    }
-
-    /**
      * 收集复制卡片信息
      *
      * @param uin     qq号
      * @param cardMsg 卡片信息
      * @return 返回值
      */
-    public String copyCard(long uin, String cardMsg) {
-        try(PreparedStatement copyCard = db.prepareStatement(
-            "insert into card (uin, cardMsg, type, date) values(?,?,\"copyCard\",now()) ")){
-            copyCard.setLong(1,uin);
-            copyCard.setString(2,cardMsg);
+    public String sendCard(long uin, String cardMsg) {
+        try (PreparedStatement copyCard = db.prepareStatement(
+            "insert into card (uin, cardMsg, date) values(?,?,now()) ")) {
+            copyCard.setLong(1, uin);
+            copyCard.setString(2, cardMsg);
             copyCard.executeUpdate();
             return Response.resp(200);
         } catch (SQLException throwable) {
@@ -370,13 +348,15 @@ public class Database {
      * @param uin      qq号
      * @param batchMsg 群发信息
      * @return 返回值
+     * @parma count 接收者数量
      */
-    public String sendBatchMessage(long uin, String batchMsg) {
-        try(PreparedStatement sendCard = db.prepareStatement(
-            "insert into batchMsg (uin, batchMsg, type, date) values(?,?,\"sendCard\",now()) ")){
-            sendCard.setLong(1,uin);
-            sendCard.setString(2,batchMsg);
-            sendCard.executeUpdate();
+    public String sendBatchMessage(long uin, String batchMsg, int count) {
+        try (PreparedStatement psmt = db.prepareStatement(
+            "insert into batchMsg (uin, batchMsg, count, date) values(?,?,?,now()) ")) {
+            psmt.setLong(1, uin);
+            psmt.setString(2, batchMsg);
+            psmt.setInt(3, count);
+            psmt.executeUpdate();
             return Response.resp(200);
         } catch (SQLException throwable) {
             MainKt.addErrorCount();

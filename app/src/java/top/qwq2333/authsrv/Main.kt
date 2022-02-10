@@ -247,36 +247,13 @@ fun main() {
                     )
                 }
             }
-            post("/statistics/card/copy") {
-                try {
-                    val req = JSONObject.parseObject(call.receiveText())
-                    val resp = Database.getInstance().copyCard(
-                        req.getLong("uin"),
-                        req.getString("msg")
-                    )
-                    call.respondText(
-                        resp,
-                        ContentType("application", "json"),
-                        HttpStatusCode(
-                            JSONObject.parseObject(resp).getIntValue("code"),
-                            JSONObject.parseObject(resp).getString("reason")
-                        )
-                    )
-                } catch (e: Exception) {
-                    addErrorCount()
-                    call.respondText(
-                        handleException(e),
-                        ContentType("application", "json"),
-                        HttpStatusCode(500, Response.status(500_2))
-                    )
-                }
-            }
             post("/statistics/batch") {
                 try {
                     val req = JSONObject.parseObject(call.receiveText())
                     val resp = Database.getInstance().sendBatchMessage(
                         req.getLong("uin"),
-                        req.getString("msg")
+                        req.getString("msg"),
+                        req.getInt("count")
                     )
                     call.respondText(
                         resp,
