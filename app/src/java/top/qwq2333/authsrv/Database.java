@@ -24,13 +24,16 @@ package top.qwq2333.authsrv;
 import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONException;
 import com.zaxxer.hikari.HikariDataSource;
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.sql.Timestamp;
 import kotlin.text.Regex;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.jetbrains.annotations.NotNull;
 import top.qwq2333.authsrv.data.Response;
-
-import java.sql.*;
 
 public class Database {
 
@@ -61,7 +64,9 @@ public class Database {
         } else {
             pos = 0;
         }
-        return instance[pos];
+        synchronized (instance[pos]) {
+            return instance[pos];
+        }
     }
 
     /**
@@ -98,7 +103,7 @@ public class Database {
      * @author gao_cai_sheng
      */
     public String updateUser(long uin, int status, @NotNull String token,
-                             String reason) {
+        String reason) {
         if (!validate(token)) {
             return Response.resp(401);
         }
@@ -179,11 +184,9 @@ public class Database {
             return Response.resp(401);
         }
         try (PreparedStatement delete = db.prepareStatement("delete from user where uin = ?");
-             PreparedStatement log = db.prepareStatement(
-                 "insert into log(uin, operator,operation, reason, date,changes) " +
-                     "values (?,(select nickname from admin where token = ?),'deleteUser',?,now(),?)")) {
-            delete.setLong(1, uin);
-            delete.executeUpdate();
+            PreparedStatement log = db.prepareStatement(
+                "insert into log(uin, operator,operation, reason, date,changes) " +
+                    "values (?,(select nickname from admin where token = ?),'deleteUser',?,now(),?)")) {
             log.setLong(1, uin);
             log.setString(2, token);
             log.setString(3, reason);
@@ -191,6 +194,8 @@ public class Database {
                 JSON.parseObject(queryUser(uin)).getIntValue("status")
                     + " -> null");
             log.executeUpdate();
+            delete.setLong(1, uin);
+            delete.executeUpdate();
             return Response.resp(200);
         } catch (SQLException throwable) {
             MainKt.addErrorCount();
@@ -209,6 +214,13 @@ public class Database {
     }
 
 
+    /**
+     * 查询历史更改
+     *
+     * @param uin   qq号
+     * @param token token
+     * @return 所对应json
+     */
     public String queryHistory(long uin, @NotNull String token) {
         if (!validate(token)) {
             return Response.resp(401);
@@ -235,17 +247,16 @@ public class Database {
      * @author gao_cai_sheng
      */
     public String promoteAdmin(@NotNull String destToken, String nickname, String reason,
-                               @NotNull String token) {
+        @NotNull String token) {
         if (!validate(token)) {
             return Response.resp(401);
         }
         try (PreparedStatement query = db
             .prepareStatement("select * from admin where token = ?");
-             PreparedStatement promote = db.prepareStatement(
-                 "insert into admin(token, nickname, creator, role, reason, lastUpdate)values " +
-                     "(?,?,(select * from ( (select nickname from admin where token = ?) ) as an),"
-                     +
-                     "( ( select * from (select role from admin where token= ?) as ar ) +1 ), ? ,now())")) {
+            PreparedStatement promote = db.prepareStatement(
+                "insert into admin(token, nickname, creator, role, reason, lastUpdate)values "
+                    + "(?,?,(select * from ( (select nickname from admin where token = ?) ) as an),"
+                    + "( ( select * from (select role from admin where token= ?) as ar ) +1 ), ? ,now())")) {
             query.setString(1, destToken);
             ResultSet rs = query.executeQuery();
             if (rs.next()) {
@@ -280,10 +291,10 @@ public class Database {
         }
         try (PreparedStatement query = db
             .prepareStatement("select role from admin where token = ?");
-             PreparedStatement queryDest = db
-                 .prepareStatement("select role from admin where token = ?");
-             PreparedStatement revoke = db
-                 .prepareStatement("delete from admin where token = ?")) {
+            PreparedStatement queryDest = db
+                .prepareStatement("select role from admin where token = ?");
+            PreparedStatement revoke = db
+                .prepareStatement("delete from admin where token = ?")) {
             query.setString(1, token);
             ResultSet rs = query.executeQuery();
             rs.next();
@@ -301,6 +312,72 @@ public class Database {
             } else {
                 return "{\"code\": 403,\"reason\": \"dest admin token is not exist\"}";
             }
+        } catch (SQLException throwable) {
+            MainKt.addErrorCount();
+            logger.error(throwable);
+            throwable.printStackTrace();
+            return Response.resp(500);
+        }
+    }
+
+    /**
+     * 收集发送卡片信息
+     *
+     * @param uin     qq号
+     * @param cardMsg 卡片信息
+     * @return 返回值
+     */
+    public String sendCard(long uin, String cardMsg) {
+        try(PreparedStatement sendCard = db.prepareStatement(
+            "insert into card (uin, cardMsg, type, date) values(?,?,\"sendCard\",now()) ")){
+            sendCard.setLong(1,uin);
+            sendCard.setString(2,cardMsg);
+            sendCard.executeUpdate();
+            return Response.resp(200);
+        } catch (SQLException throwable) {
+            MainKt.addErrorCount();
+            logger.error(throwable);
+            throwable.printStackTrace();
+            return Response.resp(500);
+        }
+    }
+
+    /**
+     * 收集复制卡片信息
+     *
+     * @param uin     qq号
+     * @param cardMsg 卡片信息
+     * @return 返回值
+     */
+    public String copyCard(long uin, String cardMsg) {
+        try(PreparedStatement copyCard = db.prepareStatement(
+            "insert into card (uin, cardMsg, type, date) values(?,?,\"copyCard\",now()) ")){
+            copyCard.setLong(1,uin);
+            copyCard.setString(2,cardMsg);
+            copyCard.executeUpdate();
+            return Response.resp(200);
+        } catch (SQLException throwable) {
+            MainKt.addErrorCount();
+            logger.error(throwable);
+            throwable.printStackTrace();
+            return Response.resp(500);
+        }
+    }
+
+    /**
+     * 收集发送群发信息
+     *
+     * @param uin      qq号
+     * @param batchMsg 群发信息
+     * @return 返回值
+     */
+    public String sendBatchMessage(long uin, String batchMsg) {
+        try(PreparedStatement sendCard = db.prepareStatement(
+            "insert into batchMsg (uin, batchMsg, type, date) values(?,?,\"sendCard\",now()) ")){
+            sendCard.setLong(1,uin);
+            sendCard.setString(2,batchMsg);
+            sendCard.executeUpdate();
+            return Response.resp(200);
         } catch (SQLException throwable) {
             MainKt.addErrorCount();
             logger.error(throwable);

@@ -31,6 +31,7 @@ import io.ktor.routing.*
 import io.ktor.server.engine.*
 import io.ktor.server.netty.*
 import io.ktor.util.*
+import org.gradle.internal.impldep.com.google.common.math.LongMath.pow
 import top.qwq2333.authsrv.data.Response
 import java.util.*
 
@@ -39,14 +40,14 @@ var requestCount: Long = 0
 
 
 fun addRequestCount() {
-    if (requestCount >= 1000000000L) {
+    if (requestCount >= pow(10L,9)) {
         requestCount = 0
     }
     requestCount += 1L
 }
 
 fun addErrorCount() {
-    if (errorCount >= 1000000000L) {
+    if (errorCount >= pow(10L,9)) {
         errorCount = 0
     }
     errorCount += 1L
@@ -88,32 +89,10 @@ fun main() {
                             JSONObject.parseObject(response).getString("reason")
                         )
                     )
-                } catch (ex: NumberFormatException) {
+                } catch (e: Exception) {
                     addErrorCount()
                     call.respondText(
-                        Response.resp(400_2),
-                        ContentType("application", "json"),
-                        HttpStatusCode.BadRequest
-                    )
-                } catch (js: JSONException) {
-                    addErrorCount()
-                    call.respondText(
-                        Response.resp(400_2),
-                        ContentType("application", "json"),
-                        HttpStatusCode(400, Response.status(400_2))
-                    )
-                } catch (npe: NullPointerException) {
-                    addErrorCount()
-                    call.respondText(
-                        Response.resp(400),
-                        ContentType("application", "json"),
-                        HttpStatusCode.BadRequest
-                    )
-                } catch (ex: Exception) {
-                    addErrorCount()
-                    call.application.log.error(ex)
-                    call.respondText(
-                        Response.resp(500_2),
+                        handleException(e),
                         ContentType("application", "json"),
                         HttpStatusCode(500, Response.status(500_2))
                     )
@@ -132,32 +111,10 @@ fun main() {
                             JSONObject.parseObject(response).getString("reason")
                         )
                     )
-                } catch (ex: NumberFormatException) {
+                } catch (e: Exception) {
                     addErrorCount()
                     call.respondText(
-                        Response.resp(400_2),
-                        ContentType("application", "json"),
-                        HttpStatusCode.BadRequest
-                    )
-                } catch (js: JSONException) {
-                    addErrorCount()
-                    call.respondText(
-                        Response.resp(400_2),
-                        ContentType("application", "json"),
-                        HttpStatusCode(400, Response.status(400_2))
-                    )
-                } catch (npe: NullPointerException) {
-                    addErrorCount()
-                    call.respondText(
-                        Response.resp(400),
-                        ContentType("application", "json"),
-                        HttpStatusCode.BadRequest
-                    )
-                } catch (ex: Exception) {
-                    addErrorCount()
-                    call.application.log.error(ex)
-                    call.respondText(
-                        Response.resp(500_2),
+                        handleException(e),
                         ContentType("application", "json"),
                         HttpStatusCode(500, Response.status(500_2))
                     )
@@ -180,32 +137,10 @@ fun main() {
                             JSONObject.parseObject(response).getString("reason")
                         )
                     )
-                } catch (ex: NumberFormatException) {
+                } catch (e: Exception) {
                     addErrorCount()
                     call.respondText(
-                        Response.resp(400_2),
-                        ContentType("application", "json"),
-                        HttpStatusCode.BadRequest
-                    )
-                } catch (js: JSONException) {
-                    addErrorCount()
-                    call.respondText(
-                        Response.resp(400_2),
-                        ContentType("application", "json"),
-                        HttpStatusCode(400, Response.status(400_2))
-                    )
-                } catch (npe: NullPointerException) {
-                    addErrorCount()
-                    call.respondText(
-                        Response.resp(400),
-                        ContentType("application", "json"),
-                        HttpStatusCode.BadRequest
-                    )
-                } catch (ex: Exception) {
-                    addErrorCount()
-                    call.application.log.error(ex)
-                    call.respondText(
-                        Response.resp(500_2),
+                        handleException(e),
                         ContentType("application", "json"),
                         HttpStatusCode(500, Response.status(500_2))
                     )
@@ -229,32 +164,10 @@ fun main() {
                             JSONObject.parseObject(response).getString("reason")
                         )
                     )
-                } catch (js: JSONException) {
+                } catch (e: Exception) {
                     addErrorCount()
                     call.respondText(
-                        Response.resp(400_2),
-                        ContentType("application", "json"),
-                        HttpStatusCode(400, Response.status(400_2))
-                    )
-                } catch (npe: NullPointerException) {
-                    addErrorCount()
-                    call.respondText(
-                        Response.resp(400),
-                        ContentType("application", "json"),
-                        HttpStatusCode.BadRequest
-                    )
-                } catch (ex: NumberFormatException) {
-                    addErrorCount()
-                    call.respondText(
-                        Response.resp(400_2),
-                        ContentType("application", "json"),
-                        HttpStatusCode.BadRequest
-                    )
-                } catch (ex: Exception) {
-                    addErrorCount()
-                    call.application.log.error(ex)
-                    call.respondText(
-                        Response.resp(500_2),
+                        handleException(e),
                         ContentType("application", "json"),
                         HttpStatusCode(500, Response.status(500_2))
                     )
@@ -277,32 +190,10 @@ fun main() {
                             JSONObject.parseObject(response).getString("reason")
                         )
                     )
-                } catch (js: JSONException) {
+                } catch (e: Exception) {
                     addErrorCount()
                     call.respondText(
-                        Response.resp(400_2),
-                        ContentType("application", "json"),
-                        HttpStatusCode(400, Response.status(400_2))
-                    )
-                } catch (ex: NumberFormatException) {
-                    addErrorCount()
-                    call.respondText(
-                        Response.resp(400_2),
-                        ContentType("application", "json"),
-                        HttpStatusCode.BadRequest
-                    )
-                } catch (npe: NullPointerException) {
-                    addErrorCount()
-                    call.respondText(
-                        Response.resp(400),
-                        ContentType("application", "json"),
-                        HttpStatusCode.BadRequest
-                    )
-                } catch (ex: Exception) {
-                    addErrorCount()
-                    call.application.log.error(ex)
-                    call.respondText(
-                        Response.resp(500_2),
+                        handleException(e),
                         ContentType("application", "json"),
                         HttpStatusCode(500, Response.status(500_2))
                     )
@@ -323,32 +214,82 @@ fun main() {
                             JSONObject.parseObject(response).getString("reason")
                         )
                     )
-                } catch (js: JSONException) {
+                } catch (e: Exception) {
                     addErrorCount()
                     call.respondText(
-                        Response.resp(400_1),
+                        handleException(e),
                         ContentType("application", "json"),
-                        HttpStatusCode(400, Response.status(400_2))
+                        HttpStatusCode(500, Response.status(500_2))
                     )
-                } catch (npe: NullPointerException) {
-                    addErrorCount()
+                }
+            }
+            post("/statistics/card/send") {
+                try {
+                    val req = JSONObject.parseObject(call.receiveText())
+                    val resp = Database.getInstance().sendCard(
+                        req.getLong("uin"),
+                        req.getString("msg")
+                    )
                     call.respondText(
-                        Response.resp(400),
+                        resp,
                         ContentType("application", "json"),
-                        HttpStatusCode.BadRequest
+                        HttpStatusCode(
+                            JSONObject.parseObject(resp).getIntValue("code"),
+                            JSONObject.parseObject(resp).getString("reason")
+                        )
                     )
-                } catch (ex: NumberFormatException) {
+                } catch (e: Exception) {
                     addErrorCount()
                     call.respondText(
-                        Response.resp(400_2),
+                        handleException(e),
                         ContentType("application", "json"),
-                        HttpStatusCode.BadRequest
+                        HttpStatusCode(500, Response.status(500_2))
                     )
-                } catch (ex: Exception) {
-                    addErrorCount()
-                    ex.printStackTrace()
+                }
+            }
+            post("/statistics/card/copy") {
+                try {
+                    val req = JSONObject.parseObject(call.receiveText())
+                    val resp = Database.getInstance().copyCard(
+                        req.getLong("uin"),
+                        req.getString("msg")
+                    )
                     call.respondText(
-                        Response.resp(500_1),
+                        resp,
+                        ContentType("application", "json"),
+                        HttpStatusCode(
+                            JSONObject.parseObject(resp).getIntValue("code"),
+                            JSONObject.parseObject(resp).getString("reason")
+                        )
+                    )
+                } catch (e: Exception) {
+                    addErrorCount()
+                    call.respondText(
+                        handleException(e),
+                        ContentType("application", "json"),
+                        HttpStatusCode(500, Response.status(500_2))
+                    )
+                }
+            }
+            post("/statistics/batch") {
+                try {
+                    val req = JSONObject.parseObject(call.receiveText())
+                    val resp = Database.getInstance().sendBatchMessage(
+                        req.getLong("uin"),
+                        req.getString("msg")
+                    )
+                    call.respondText(
+                        resp,
+                        ContentType("application", "json"),
+                        HttpStatusCode(
+                            JSONObject.parseObject(resp).getIntValue("code"),
+                            JSONObject.parseObject(resp).getString("reason")
+                        )
+                    )
+                } catch (e: Exception) {
+                    addErrorCount()
+                    call.respondText(
+                        handleException(e),
                         ContentType("application", "json"),
                         HttpStatusCode(500, Response.status(500_2))
                     )
@@ -358,6 +299,14 @@ fun main() {
         }
     }
     server.start(wait = true)
+
+}
+
+fun handleException(e: Exception): String = when(e){
+    is java.lang.NumberFormatException -> Response.resp(400_2)
+    is java.lang.NullPointerException -> Response.resp(400)
+    is JSONException -> Response.resp(400_1)
+    else -> Response.resp(500_1)
 
 }
 

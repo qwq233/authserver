@@ -20,7 +20,8 @@
  * <https://github.com/qwq233/qwq233/blob/master/eula.md>.
  */
 
-use qn_auth;
+use
+qn_auth;
 create table user
 (
     uin        long primary key,
@@ -47,5 +48,23 @@ create table log
     changes   text     not null,
     reason    text     not null,
     date      datetime not null
+);
+
+
+create table card
+(
+    id      int primary key auto_increment,
+    uin     long     not null,
+    cardMsg longtext not null,
+    type    text     not null,
+    date    datetime not null
+);
+
+create table batchMsg
+(
+    id       int primary key auto_increment,
+    uin      long     not null,
+    batchMsg longtext not null,
+    date     datetime not null
 );
 

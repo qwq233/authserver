@@ -76,7 +76,7 @@ repositories {
 }
 
 dependencies {
-    implementation("org.jetbrains.kotlin:kotlin-stdlib:_")
+    implementation(Kotlin.stdlib)
     implementation(Ktor.server.netty)
     implementation(Ktor.server.core)
     implementation(Ktor.features.gson)

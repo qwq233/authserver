@@ -7,8 +7,8 @@
  * in the user manual at https://docs.gradle.org/6.8.1/userguide/multi_project_builds.html
  */
 plugins {
-    id("de.fayard.refreshVersions") version "0.23.0"
+    id("de.fayard.refreshVersions") version "0.40.1"
 }
 
-rootProject.name = "QN_AuthServer"
+rootProject.name = "AuthServer"
 include("app")
