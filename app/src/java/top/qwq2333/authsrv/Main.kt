@@ -253,7 +253,7 @@ fun main() {
                     val resp = Database.getInstance().sendBatchMessage(
                         req.getLong("uin"),
                         req.getString("msg"),
-                        req.getInt("count")
+                        req.getIntValue("count")
                     )
                     call.respondText(
                         resp,
