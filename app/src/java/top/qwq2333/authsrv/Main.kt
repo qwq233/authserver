@@ -62,7 +62,7 @@ fun main() {
     Database.init(dbSource)
     val server = embeddedServer(Netty, 10810) {
         routing {
-            get("/") {
+            get("/qa") {
                 call.respondText(
                     "Server started at " + Date(startTime) + ", running for " +
                         (System.currentTimeMillis() - startTime) / 1000 + "s\nrequestCount = " + requestCount +
@@ -72,7 +72,7 @@ fun main() {
             }
 
             // update user
-            post("/user") {
+            post("/qa/user") {
                 try {
                     val req = JSONObject.parseObject(call.receiveText())
                     val response = Database.getInstance().updateUser(
@@ -99,7 +99,7 @@ fun main() {
                 }
             }
             // query user
-            post("/user/query") {
+            post("/qa/user/query") {
                 try {
                     val req = JSONObject.parseObject(call.receiveText())
                     val response = Database.getInstance().queryUser(req.getLong("uin"))
@@ -121,7 +121,7 @@ fun main() {
                 }
             }
             // delete user
-            delete("/user") {
+            delete("/qa/user") {
                 try {
                     val req = JSONObject.parseObject(call.receiveText())
                     val response = Database.getInstance().deleteUser(
@@ -147,7 +147,7 @@ fun main() {
                 }
             }
             // promote admin
-            post("/admin") {
+            post("/qa/admin") {
                 try {
                     val req = JSONObject.parseObject(call.receiveText())
                     val response = Database.getInstance().promoteAdmin(
@@ -175,7 +175,7 @@ fun main() {
 
             }
             // revoke admin
-            delete("/admin") {
+            delete("/qa/admin") {
                 try {
                     val req = JSONObject.parseObject(call.receiveText())
                     val response = Database.getInstance().revokeAdmin(
@@ -199,7 +199,7 @@ fun main() {
                     )
                 }
             }
-            get("/user/history") {
+            get("/qa/user/history") {
                 try {
                     val req = JSONObject.parseObject(call.receiveText())
                     val response = Database.getInstance().queryHistory(
@@ -223,7 +223,7 @@ fun main() {
                     )
                 }
             }
-            post("/statistics/card/send") {
+            post("/qa/statistics/card/send") {
                 try {
                     val req = JSONObject.parseObject(call.receiveText())
                     val resp = Database.getInstance().sendCard(
@@ -247,7 +247,7 @@ fun main() {
                     )
                 }
             }
-            post("/statistics/batch") {
+            post("/qa/statistics/batch") {
                 try {
                     val req = JSONObject.parseObject(call.receiveText())
                     val resp = Database.getInstance().sendBatchMessage(
