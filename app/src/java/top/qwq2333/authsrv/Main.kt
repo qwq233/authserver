@@ -30,7 +30,6 @@ import io.ktor.response.*
 import io.ktor.routing.*
 import io.ktor.server.engine.*
 import io.ktor.server.netty.*
-import io.ktor.util.*
 import org.gradle.internal.impldep.com.google.common.math.LongMath.pow
 import top.qwq2333.authsrv.data.Response
 import java.util.*
@@ -100,25 +99,10 @@ fun main() {
             }
             // query user
             post("/qa/user/query") {
-                try {
-                    val req = JSONObject.parseObject(call.receiveText())
-                    val response = Database.getInstance().queryUser(req.getLong("uin"))
-                    call.respondText(
-                        response,
-                        ContentType("application", "json"),
-                        HttpStatusCode(
-                            JSONObject.parseObject(response).getIntValue("code"),
-                            JSONObject.parseObject(response).getString("reason")
-                        )
-                    )
-                } catch (e: Exception) {
-                    addErrorCount()
-                    call.respondText(
-                        handleException(e),
-                        ContentType("application", "json"),
-                        HttpStatusCode(500, Response.status(500_2))
-                    )
-                }
+                processQueryUser(call)
+            }
+            post("/user/query") {
+                processQueryUser(call)
             }
             // delete user
             delete("/qa/user") {
@@ -224,53 +208,10 @@ fun main() {
                 }
             }
             post("/qa/statistics/card/send") {
-                try {
-                    val req = JSONObject.parseObject(call.receiveText())
-                    val resp = Database.getInstance().sendCard(
-                        req.getLong("uin"),
-                        req.getString("msg")
-                    )
-                    call.respondText(
-                        resp,
-                        ContentType("application", "json"),
-                        HttpStatusCode(
-                            JSONObject.parseObject(resp).getIntValue("code"),
-                            JSONObject.parseObject(resp).getString("reason")
-                        )
-                    )
-                } catch (e: Exception) {
-                    addErrorCount()
-                    call.respondText(
-                        handleException(e),
-                        ContentType("application", "json"),
-                        HttpStatusCode(500, Response.status(500_2))
-                    )
-                }
+                processCardStatistics(call)
             }
-            post("/qa/statistics/batch") {
-                try {
-                    val req = JSONObject.parseObject(call.receiveText())
-                    val resp = Database.getInstance().sendBatchMessage(
-                        req.getLong("uin"),
-                        req.getString("msg"),
-                        req.getIntValue("count")
-                    )
-                    call.respondText(
-                        resp,
-                        ContentType("application", "json"),
-                        HttpStatusCode(
-                            JSONObject.parseObject(resp).getIntValue("code"),
-                            JSONObject.parseObject(resp).getString("reason")
-                        )
-                    )
-                } catch (e: Exception) {
-                    addErrorCount()
-                    call.respondText(
-                        handleException(e),
-                        ContentType("application", "json"),
-                        HttpStatusCode(500, Response.status(500_2))
-                    )
-                }
+            post("/statistics/card/send") {
+                processCardStatistics(call)
             }
 
         }
@@ -287,3 +228,49 @@ fun handleException(e: Exception): String = when(e){
 
 }
 
+suspend fun processQueryUser(r: ApplicationCall) {
+    try {
+        val req = JSONObject.parseObject(r.receiveText())
+        val response = Database.getInstance().queryUser(req.getLong("uin"))
+        r.respondText(
+            response,
+            ContentType("application", "json"),
+            HttpStatusCode(
+                JSONObject.parseObject(response).getIntValue("code"),
+                JSONObject.parseObject(response).getString("reason")
+            )
+        )
+    } catch (e: Exception) {
+        addErrorCount()
+        r.respondText(
+            handleException(e),
+            ContentType("application", "json"),
+            HttpStatusCode(500, Response.status(500_2))
+        )
+    }
+}
+
+suspend fun processCardStatistics(r: ApplicationCall){
+    try {
+        val req = JSONObject.parseObject(r.receiveText())
+        val resp = Database.getInstance().sendCard(
+            req.getLong("uin"),
+            req.getString("msg")
+        )
+        r.respondText(
+            resp,
+            ContentType("application", "json"),
+            HttpStatusCode(
+                JSONObject.parseObject(resp).getIntValue("code"),
+                JSONObject.parseObject(resp).getString("reason")
+            )
+        )
+    } catch (e: Exception) {
+        addErrorCount()
+        r.respondText(
+            handleException(e),
+            ContentType("application", "json"),
+            HttpStatusCode(500, Response.status(500_2))
+        )
+    }
+}
