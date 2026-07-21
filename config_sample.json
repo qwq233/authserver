@@ -1,6 +1,8 @@
 {
     "ip": "127.0.0.1",
     "port": 3306,
-    "username": "",
-    "password": ""
+    "username": "authserver",
+    "password": "change-me",
+    "database": "qn_auth",
+    "maximumPoolSize": 10
 }

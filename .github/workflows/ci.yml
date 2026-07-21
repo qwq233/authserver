@@ -1,40 +1,26 @@
-name: Build CI
+name: CI
 
 on:
-    push:
-        branches: [ master ]
-    pull_request:
-        branches: [ master ]
+  push:
+  pull_request:
 
-env:
-    WARN_ON_PR: "artifact upload is disabled due to the workflow is trigged by pull request."
+permissions:
+  contents: read
 
 jobs:
-    gradle:
-        name: Gradle CI Build
-        runs-on: ubuntu-latest
-        steps:
-            - name: Clone repository
-              uses: actions/checkout@v2
-            - name: Prepare Java 15
-              uses: actions/setup-java@v1
-              with:
-                  java-version: 15
-                  java-package: jdk+fx
-            - name: Cache Gradle packages
-              uses: actions/cache@v2
-              with:
-                  path: ~/.gradle/caches
-                  key: ${{ runner.os }}-gradle-${{ hashFiles('**/*.gradle') }}
-                  restore-keys: ${{ runner.os }}-gradle
-            - name: Build project
-              run: |
-                  if ${{ !!github.head_ref }}; then echo "::warning:: Gradle $WARN_ON_PR"; fi
-                  gradle wrapper
-                  bash gradlew build
-            - name: Upload articact
-              uses: actions/upload-artifact@v2
-              if: ${{ !github.head_ref }}
-              with:
-                  path: app/build/outputs/apk
-                  name: gradle
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: "21"
+      - uses: gradle/actions/setup-gradle@v6
+      - run: ./gradlew --no-daemon clean test verifyFatJar
+      - uses: actions/upload-artifact@v7
+        with:
+          name: authserver-fatjar
+          path: build/libs/authserver-*-all-optimized.jar
+          if-no-files-found: error
