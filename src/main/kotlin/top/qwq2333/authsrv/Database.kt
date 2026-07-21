@@ -250,7 +250,7 @@ private object DatabaseSchema {
             it[version] = CURRENT_SCHEMA_VERSION
             it[legacyCleanupPending] = migratedLegacy
         }
-        logger.info("Database schema migrated to version {}", CURRENT_SCHEMA_VERSION)
+        logger.debug("Database schema migrated to version {}", CURRENT_SCHEMA_VERSION)
     }
 
     private fun validateLegacyPresence(tableNames: Set<String>) {

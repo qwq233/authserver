@@ -20,6 +20,7 @@ import io.ktor.server.routing.post
 import io.ktor.server.routing.route
 import io.ktor.server.routing.routing
 import org.slf4j.LoggerFactory
+import org.slf4j.event.Level
 import java.util.Date
 import kotlin.time.Clock
 import kotlin.time.Instant
@@ -31,7 +32,9 @@ internal fun Application.installAuthServer(service: AuthService, startedAt: Inst
     install(ContentNegotiation) {
         json(apiJson)
     }
-    install(CallLogging)
+    install(CallLogging) {
+        level = Level.DEBUG
+    }
     install(StatusPages) {
         exception<RequestException> { call, error ->
             call.respondApi(BasicResponse(400, error.responseReason), counters)

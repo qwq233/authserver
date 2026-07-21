@@ -6,7 +6,7 @@
             <pattern>%gray(%date) %highlight(%-5level) [%thread] %cyan(%logger{36}) - %msg%n</pattern>
         </encoder>
     </appender>
-    <root level="INFO">
+    <root level="WARN">
         <appender-ref ref="STDOUT" />
     </root>
 </configuration>
