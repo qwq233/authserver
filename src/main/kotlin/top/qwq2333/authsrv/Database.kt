@@ -82,7 +82,15 @@ internal object Cards : Table("card_events") {
     override val primaryKey = PrimaryKey(id)
 }
 
-internal object SchemaVersions : Table("auth_schema_versions") {
+internal object SchemaState : Table("auth_schema") {
+    val id = integer("id")
+    val version = integer("version")
+    val legacyCleanupPending = bool("legacy_cleanup_pending")
+
+    override val primaryKey = PrimaryKey(id)
+}
+
+internal object PreviousSchemaVersions : Table("auth_schema_versions") {
     val version = integer("version")
     val appliedAt = datetime("applied_at")
     val legacyCleanupPending = bool("legacy_cleanup_pending")
@@ -90,7 +98,7 @@ internal object SchemaVersions : Table("auth_schema_versions") {
     override val primaryKey = PrimaryKey(version)
 }
 
-internal object SchemaLock : Table("auth_schema_lock") {
+internal object PreviousSchemaLock : Table("auth_schema_lock") {
     val id = integer("id")
 
     override val primaryKey = PrimaryKey(id)
@@ -139,7 +147,7 @@ internal object LegacyCards : Table("card") {
     override val primaryKey = PrimaryKey(id)
 }
 
-internal object LegacyBatchMessages : Table("batchmsg") {
+internal object LegacyBatchMessages : Table("batchMsg") {
     val id = integer("id").autoIncrement()
     val uin = long("uin")
     val batchMsg = largeText("batchmsg")
@@ -153,54 +161,68 @@ internal fun initializeDatabase(dataSource: DataSource): Database =
 
 private object DatabaseSchema {
     private val logger = LoggerFactory.getLogger(DatabaseSchema::class.java)
-    private val currentTables = listOf(Users, Admins, History, Cards, SchemaVersions, SchemaLock)
     private val currentDataTables = listOf(Users, Admins, History, Cards)
+    private val currentTables = currentDataTables + SchemaState
     private val currentTableNames = currentTables.mapTo(linkedSetOf()) { it.normalizedName }
+    private val previousStateTableNames = setOf(
+        PreviousSchemaVersions.normalizedName,
+        PreviousSchemaLock.normalizedName,
+    )
     private val legacyTables = listOf(LegacyUsers, LegacyAdmins, LegacyHistory, LegacyCards)
     private val legacyTableNames = legacyTables.mapTo(linkedSetOf()) { it.normalizedName }
-    private val legacyCleanupTables = legacyTables + LegacyBatchMessages
+    private val legacyCleanupTableNames = legacyTableNames + LegacyBatchMessages.normalizedName
 
     fun migrate(database: Database) {
-        val createCurrentSchema = transaction(database) {
+        val initialState = transaction(database) {
             requireSupportedDialect()
             val tableNames = tableNames()
-            when (readVersion(tableNames)) {
-                null -> {
-                    validateUnversionedState(tableNames)
-                    true
-                }
+            val state = readInitialState(tableNames)
+            when (state.version) {
+                0 -> validateUnversionedState(tableNames)
                 CURRENT_SCHEMA_VERSION -> {
-                    validateCurrentSchema()
-                    validateLegacyCleanupState(tableNames)
-                    false
+                    validateCurrentDataSchema()
+                    validateLegacyCleanupState(tableNames, state.legacyCleanupPending)
                 }
                 else -> error("Unsupported database schema version")
             }
+            state
         }
 
-        if (createCurrentSchema) {
+        try {
             transaction(database) {
                 SchemaUtils.create(*currentTables.toTypedArray())
+                if (SchemaState.selectAll()
+                        .where { SchemaState.id eq SCHEMA_STATE_ID }
+                        .limit(1)
+                        .none()
+                ) {
+                    SchemaState.insert {
+                        it[id] = SCHEMA_STATE_ID
+                        it[version] = initialState.version
+                        it[legacyCleanupPending] = initialState.legacyCleanupPending
+                    }
+                }
             }
+        } catch (error: SQLException) {
+            if (!error.isUniqueViolation()) throw error
         }
 
         val generatedAdminToken = transaction(database) {
             requireSupportedDialect()
-            if (SchemaLock.selectAll().where { SchemaLock.id eq SCHEMA_LOCK_ID }.singleOrNull() == null) {
-                SchemaLock.insert { it[id] = SCHEMA_LOCK_ID }
-            }
-            commit()
-            SchemaLock.selectAll()
-                .where { SchemaLock.id eq SCHEMA_LOCK_ID }
+            val state = SchemaState.selectAll()
+                .where { SchemaState.id eq SCHEMA_STATE_ID }
                 .forUpdate()
                 .single()
 
             val tableNames = tableNames()
-            when (readVersion(tableNames)) {
-                null -> migrateUnversioned(tableNames)
+            when (state[SchemaState.version]) {
+                0 -> migrateUnversioned(tableNames)
                 CURRENT_SCHEMA_VERSION -> {
                     validateCurrentSchema()
-                    validateLegacyCleanupState(tableNames)
+                    validateLegacyCleanupState(
+                        tableNames,
+                        state[SchemaState.legacyCleanupPending],
+                    )
                 }
                 else -> error("Unsupported database schema version")
             }
@@ -224,10 +246,9 @@ private object DatabaseSchema {
         }
 
         validateCurrentSchema()
-        SchemaVersions.insert {
+        SchemaState.update({ SchemaState.id eq SCHEMA_STATE_ID }) {
             it[version] = CURRENT_SCHEMA_VERSION
-            it[appliedAt] = CurrentDateTime
-            it[SchemaVersions.legacyCleanupPending] = migratedLegacy
+            it[legacyCleanupPending] = migratedLegacy
         }
         logger.info("Database schema migrated to version {}", CURRENT_SCHEMA_VERSION)
     }
@@ -288,8 +309,14 @@ private object DatabaseSchema {
         }
     }
 
-    private fun validateLegacyCleanupState(tableNames: Set<String>) {
-        check(isLegacyCleanupPending() || tableNames.intersect(legacyTableNames).isEmpty()) {
+    private fun validateCurrentDataSchema() {
+        check(schemaDifferences(currentDataTables).isEmpty()) {
+            "Database schema does not match version $CURRENT_SCHEMA_VERSION"
+        }
+    }
+
+    private fun validateLegacyCleanupState(tableNames: Set<String>, cleanupPending: Boolean) {
+        check(cleanupPending || tableNames.intersect(legacyTableNames).isEmpty()) {
             "Refusing unexpected legacy tables after completed migration"
         }
     }
@@ -477,21 +504,38 @@ private object DatabaseSchema {
         return token.takeIf { configured == null }
     }
 
-    private fun readVersion(tableNames: Set<String>): Int? {
-        if (SchemaVersions.normalizedName !in tableNames) return null
-        return SchemaVersions.selectAll()
-            .orderBy(SchemaVersions.version to SortOrder.DESC)
+    private fun readInitialState(tableNames: Set<String>): MigrationState {
+        if (SchemaState.normalizedName in tableNames) {
+            check(schemaDifferences(listOf(SchemaState)).isEmpty()) {
+                "Database schema state table is invalid"
+            }
+            val rows = SchemaState.selectAll().limit(2).toList()
+            check(rows.size <= 1 && rows.all { row -> row[SchemaState.id] == SCHEMA_STATE_ID }) {
+                "Database schema state table is invalid"
+            }
+            rows.singleOrNull()?.let { row ->
+                return MigrationState(
+                    version = row[SchemaState.version],
+                    legacyCleanupPending = row[SchemaState.legacyCleanupPending],
+                )
+            }
+        }
+        if (PreviousSchemaVersions.normalizedName !in tableNames) return MigrationState(0, false)
+        return PreviousSchemaVersions.selectAll()
+            .orderBy(PreviousSchemaVersions.version to SortOrder.DESC)
             .limit(1)
             .singleOrNull()
-            ?.get(SchemaVersions.version)
+            ?.let { row ->
+                MigrationState(
+                    version = row[PreviousSchemaVersions.version],
+                    legacyCleanupPending = row[PreviousSchemaVersions.legacyCleanupPending],
+                )
+            }
+            ?: MigrationState(0, false)
     }
 
     private fun tableNames(): Set<String> = SchemaUtils.listTables()
-        .mapTo(linkedSetOf()) { name ->
-            name.substringAfterLast('.')
-                .trim('`', '"')
-                .lowercase()
-        }
+        .mapTo(linkedSetOf()) { name -> name.unqualifiedName.lowercase() }
 
     private fun requireSupportedDialect() {
         check(currentDialect is MariaDBDialect || currentDialect is H2Dialect) {
@@ -500,32 +544,48 @@ private object DatabaseSchema {
     }
 
     private fun cleanupLegacyTables(database: Database) {
-        transaction(database) {
-            if (readVersion(tableNames()) != CURRENT_SCHEMA_VERSION) return@transaction
-            val cleanupPending = isLegacyCleanupPending()
-            val existing = tableNames()
-            val candidates = if (cleanupPending) legacyCleanupTables else listOf(LegacyBatchMessages)
-            val obsolete = candidates.filter { it.normalizedName in existing }
+        val (cleanupPending, candidates) = transaction(database) {
+            val state = SchemaState.selectAll()
+                .where { SchemaState.id eq SCHEMA_STATE_ID }
+                .single()
+            check(state[SchemaState.version] == CURRENT_SCHEMA_VERSION) {
+                "Unsupported database schema version"
+            }
+            val cleanupPending = state[SchemaState.legacyCleanupPending]
+            val candidates = (
+                if (cleanupPending) legacyCleanupTableNames else setOf(LegacyBatchMessages.normalizedName)
+            ) + previousStateTableNames
+            val obsolete = SchemaUtils.listTables()
+                .map { name -> name.unqualifiedName }
+                .filter { name -> name.lowercase() in candidates }
+                .map(::Table)
             if (obsolete.isNotEmpty()) SchemaUtils.drop(*obsolete.toTypedArray())
-            val remaining = tableNames()
-            check(obsolete.none { it.normalizedName in remaining }) {
-                "Legacy table cleanup did not complete"
+            cleanupPending to candidates
+        }
+
+        transaction(database) {
+            val remaining = tableNames().intersect(candidates)
+            check(remaining.isEmpty()) {
+                "Legacy table cleanup did not complete: ${remaining.sorted()}"
             }
             if (cleanupPending) {
-                SchemaVersions.update({ SchemaVersions.version eq CURRENT_SCHEMA_VERSION }) {
-                    it[SchemaVersions.legacyCleanupPending] = false
+                SchemaState.update({ SchemaState.id eq SCHEMA_STATE_ID }) {
+                    it[legacyCleanupPending] = false
                 }
             }
         }
     }
 
-    private fun isLegacyCleanupPending(): Boolean = SchemaVersions.selectAll()
-        .orderBy(SchemaVersions.version to SortOrder.DESC)
-        .limit(1)
-        .single()[SchemaVersions.legacyCleanupPending]
-
     private val Table.normalizedName: String
-        get() = tableName.substringAfterLast('.').trim('`', '"').lowercase()
+        get() = tableName.unqualifiedName.lowercase()
+
+    private val String.unqualifiedName: String
+        get() = substringAfterLast('.').trim('`', '"')
+
+    private data class MigrationState(
+        val version: Int,
+        val legacyCleanupPending: Boolean,
+    )
 
     private data class LegacyAdmin(
         val id: Int,
@@ -754,7 +814,7 @@ private fun SQLException.isUniqueViolation(): Boolean =
     sqlState == "23505" || sqlState?.startsWith("23") == true && errorCode == 1062
 
 private const val CURRENT_SCHEMA_VERSION = 1
-private const val SCHEMA_LOCK_ID = 1
+private const val SCHEMA_STATE_ID = 1
 private const val MIGRATION_BATCH_SIZE = 1_000
 private const val TOKEN_DIGEST_LENGTH = 64
 private const val INITIAL_ADMIN_BYTES = 32

@@ -214,8 +214,10 @@ class AuthServerTest {
         h2DataSource().use { dataSource ->
             val db = initializeDatabase(dataSource)
             transaction(db) {
-                assertEquals(1, SchemaVersions.selectAll().single()[SchemaVersions.version])
-                assertFalse(SchemaVersions.selectAll().single()[SchemaVersions.legacyCleanupPending])
+                val state = SchemaState.selectAll().single()
+                assertEquals(1, state[SchemaState.id])
+                assertEquals(1, state[SchemaState.version])
+                assertFalse(state[SchemaState.legacyCleanupPending])
                 assertEquals(tokenDigest("test_root"), Admins.selectAll().single()[Admins.tokenDigest])
                 assertTrue(currentSchemaDifferences().isEmpty())
                 Users.insert {
@@ -228,10 +230,11 @@ class AuthServerTest {
 
             initializeDatabase(dataSource)
             transaction(database(dataSource)) {
-                assertEquals(1, SchemaVersions.selectAll().count())
+                assertEquals(1, SchemaState.selectAll().count())
                 assertEquals(1, Admins.selectAll().count())
                 assertEquals("keep", Users.selectAll().single()[Users.reason])
                 assertTrue(currentSchemaDifferences().isEmpty())
+                assertFalse(setOf("auth_schema_versions", "auth_schema_lock").any(tableNames()::contains))
             }
         }
     }
@@ -255,12 +258,23 @@ class AuthServerTest {
                 val card = Cards.selectAll().single()
                 assertEquals("legacy-card", card[Cards.cardMsg])
                 assertEquals("sendCard", card[Cards.type])
-                assertEquals(1, SchemaVersions.selectAll().single()[SchemaVersions.version])
-                assertFalse(SchemaVersions.selectAll().single()[SchemaVersions.legacyCleanupPending])
+                val state = SchemaState.selectAll().single()
+                assertEquals(1, state[SchemaState.version])
+                assertFalse(state[SchemaState.legacyCleanupPending])
                 assertTrue(currentSchemaDifferences().isEmpty())
 
                 val tables = tableNames()
-                assertFalse(setOf("user", "admin", "log", "card", "batchmsg").any(tables::contains))
+                assertFalse(
+                    setOf(
+                        "user",
+                        "admin",
+                        "log",
+                        "card",
+                        "batchmsg",
+                        "auth_schema_versions",
+                        "auth_schema_lock",
+                    ).any(tables::contains),
+                )
             }
 
             testApplication {
@@ -285,10 +299,50 @@ class AuthServerTest {
 
     @Test
     fun previouslyRetainedBatchTableIsDropped() {
-        h2DataSource().use { dataSource ->
+        h2DataSource(caseSensitiveIdentifiers = true).use { dataSource ->
             initializeDatabase(dataSource)
             transaction(database(dataSource)) {
-                SchemaUtils.create(LegacyBatchMessages)
+                SchemaUtils.create(LegacyBatchMessages, LowercaseLegacyBatchMessages)
+                LegacyBatchMessages.insert {
+                    it[uin] = 10001
+                    it[batchMsg] = "retained"
+                    it[date] = LEGACY_TIME
+                }
+                LowercaseLegacyBatchMessages.insert {
+                    it[uin] = 10002
+                    it[batchMsg] = "retained-lowercase"
+                    it[date] = LEGACY_TIME
+                }
+            }
+
+            initializeDatabase(dataSource)
+
+            transaction(database(dataSource)) {
+                assertFalse("batchmsg" in tableNames())
+                assertFalse(SchemaState.selectAll().single()[SchemaState.legacyCleanupPending])
+            }
+        }
+    }
+
+    @Test
+    fun previousSchemaStateRecoversAfterFailedCleanup() {
+        h2DataSource(caseSensitiveIdentifiers = true).use { dataSource ->
+            transaction(database(dataSource)) {
+                SchemaUtils.create(
+                    Users,
+                    Admins,
+                    History,
+                    Cards,
+                    PreviousSchemaVersions,
+                    PreviousSchemaLock,
+                    LegacyBatchMessages,
+                )
+                PreviousSchemaVersions.insert {
+                    it[version] = 1
+                    it[appliedAt] = LEGACY_TIME
+                    it[legacyCleanupPending] = true
+                }
+                PreviousSchemaLock.insert { it[id] = 1 }
                 LegacyBatchMessages.insert {
                     it[uin] = 10001
                     it[batchMsg] = "retained"
@@ -299,8 +353,14 @@ class AuthServerTest {
             initializeDatabase(dataSource)
 
             transaction(database(dataSource)) {
-                assertFalse("batchmsg" in tableNames())
-                assertFalse(SchemaVersions.selectAll().single()[SchemaVersions.legacyCleanupPending])
+                val state = SchemaState.selectAll().single()
+                assertEquals(1, state[SchemaState.version])
+                assertFalse(state[SchemaState.legacyCleanupPending])
+                assertTrue(currentSchemaDifferences().isEmpty())
+                assertFalse(
+                    setOf("batchmsg", "auth_schema_versions", "auth_schema_lock")
+                        .any(tableNames()::contains),
+                )
             }
         }
     }
@@ -407,7 +467,7 @@ class AuthServerTest {
             transaction(database(dataSource)) { SchemaUtils.create(BrokenLegacyUsers) }
             assertFailsWith<IllegalStateException> { initializeDatabase(dataSource) }
             transaction(database(dataSource)) {
-                assertFalse("auth_schema_versions" in tableNames())
+                assertFalse("auth_schema" in tableNames())
             }
         }
 
@@ -423,7 +483,7 @@ class AuthServerTest {
             }
             assertFailsWith<IllegalStateException> { initializeDatabase(dataSource) }
             transaction(database(dataSource)) {
-                assertFalse("auth_schema_versions" in tableNames())
+                assertFalse("auth_schema" in tableNames())
                 assertEquals("unversioned", Users.selectAll().single()[Users.reason])
             }
         }
@@ -432,7 +492,7 @@ class AuthServerTest {
             createLegacySchema(dataSource, duplicateAdmin = true)
             assertFailsWith<IllegalStateException> { initializeDatabase(dataSource) }
             transaction(database(dataSource)) {
-                assertFalse("auth_schema_versions" in tableNames())
+                assertFalse("auth_schema" in tableNames())
                 assertEquals(2, LegacyAdmins.selectAll().count())
             }
         }
@@ -440,30 +500,48 @@ class AuthServerTest {
         h2DataSource().use { dataSource ->
             initializeDatabase(dataSource)
             transaction(database(dataSource)) {
-                SchemaVersions.update({ SchemaVersions.version eq 1 }) {
+                SchemaState.update({ SchemaState.id eq 1 }) {
                     it[version] = 2
                 }
             }
             assertFailsWith<IllegalStateException> { initializeDatabase(dataSource) }
             transaction(database(dataSource)) {
-                assertEquals(2, SchemaVersions.selectAll().single()[SchemaVersions.version])
+                assertEquals(2, SchemaState.selectAll().single()[SchemaState.version])
                 assertEquals(1, Admins.selectAll().count())
             }
         }
 
         h2DataSource().use { dataSource ->
             transaction(database(dataSource)) {
-                SchemaUtils.create(Users, CorruptAdmins, History, Cards, SchemaVersions, SchemaLock)
-                SchemaVersions.insert {
+                SchemaUtils.create(Users, CorruptAdmins, History, Cards, SchemaState)
+                SchemaState.insert {
+                    it[id] = 1
                     it[version] = 1
-                    it[appliedAt] = LEGACY_TIME
                     it[legacyCleanupPending] = false
                 }
             }
             assertFailsWith<IllegalStateException> { initializeDatabase(dataSource) }
             transaction(database(dataSource)) {
                 assertEquals(0, CorruptAdmins.selectAll().count())
-                assertEquals(1, SchemaVersions.selectAll().single()[SchemaVersions.version])
+                assertEquals(1, SchemaState.selectAll().single()[SchemaState.version])
+            }
+        }
+
+        h2DataSource().use { dataSource ->
+            transaction(database(dataSource)) {
+                SchemaUtils.create(Users, Admins, History, Cards, SchemaState)
+                listOf(1, 2).forEach { stateId ->
+                    SchemaState.insert {
+                        it[id] = stateId
+                        it[version] = 1
+                        it[legacyCleanupPending] = false
+                    }
+                }
+            }
+            assertFailsWith<IllegalStateException> { initializeDatabase(dataSource) }
+            transaction(database(dataSource)) {
+                assertEquals(2, SchemaState.selectAll().count())
+                assertEquals(0, Admins.selectAll().count())
             }
         }
 
@@ -488,7 +566,7 @@ class AuthServerTest {
         h2DataSource().use { dataSource ->
             initializeDatabase(dataSource)
             transaction(database(dataSource)) {
-                SchemaVersions.update({ SchemaVersions.version eq 1 }) {
+                SchemaState.update({ SchemaState.id eq 1 }) {
                     it[legacyCleanupPending] = true
                 }
                 SchemaUtils.create(LegacyUsers)
@@ -502,7 +580,7 @@ class AuthServerTest {
             initializeDatabase(dataSource)
             transaction(database(dataSource)) {
                 assertFalse("user" in tableNames())
-                assertFalse(SchemaVersions.selectAll().single()[SchemaVersions.legacyCleanupPending])
+                assertFalse(SchemaState.selectAll().single()[SchemaState.legacyCleanupPending])
             }
         }
     }
@@ -570,8 +648,7 @@ class AuthServerTest {
             Admins,
             History,
             Cards,
-            SchemaVersions,
-            SchemaLock,
+            SchemaState,
             withLogs = false,
         )
 
@@ -580,10 +657,15 @@ class AuthServerTest {
             name.substringAfterLast('.').trim('`', '"').lowercase()
         }
 
-    private fun h2DataSource(): HikariDataSource = HikariDataSource(
+    private fun h2DataSource(caseSensitiveIdentifiers: Boolean = false): HikariDataSource = HikariDataSource(
         HikariConfig().apply {
+            val identifierMode = if (caseSensitiveIdentifiers) {
+                "DATABASE_TO_UPPER=FALSE;CASE_INSENSITIVE_IDENTIFIERS=FALSE"
+            } else {
+                "DATABASE_TO_LOWER=TRUE"
+            }
             jdbcUrl = "jdbc:h2:mem:authserver_${UUID.randomUUID()};MODE=MariaDB;" +
-                "DATABASE_TO_LOWER=TRUE;NON_KEYWORDS=USER;DB_CLOSE_DELAY=-1"
+                "$identifierMode;NON_KEYWORDS=USER;DB_CLOSE_DELAY=-1"
             username = "sa"
             password = ""
             maximumPoolSize = 4
@@ -654,6 +736,15 @@ class AuthServerTest {
         val id = integer("id").autoIncrement()
         val uin = long("uin")
         val cardMsg = largeText("cardmsg")
+        val date = datetime("date")
+
+        override val primaryKey = PrimaryKey(id)
+    }
+
+    private object LowercaseLegacyBatchMessages : Table("batchmsg") {
+        val id = integer("id").autoIncrement()
+        val uin = long("uin")
+        val batchMsg = largeText("batchmsg")
         val date = datetime("date")
 
         override val primaryKey = PrimaryKey(id)

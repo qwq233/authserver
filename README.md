@@ -33,18 +33,19 @@ AUTH_INITIAL_ADMIN_TOKEN=<仅含 0-9、A-Z、a-z、_ 的 token>
 - `auth_admins`
 - `user_history`
 - `card_events`
-- `auth_schema_versions`
-- `auth_schema_lock`
+- `auth_schema`
 
 旧版完整的 `user`、`admin`、`log`、`card` schema 会被识别并迁移：数据分批复制，管理员
 token 转换为唯一 SHA-256 digest；旧 MariaDB 的数值别名和 `DATETIME` 精度差异通过 Exposed
 typed projection 读取，目标数据逐字段回读、总数和新 schema 复核通过后才记录版本。版本记录会保留
 `legacy_cleanup_pending` 状态，只有已验证迁移的崩溃恢复流程才能继续清理旧表；迁移完成后重新出现的
-同名表会被拒绝而不会静默删除。已废弃且没有 API 的 `batchMsg` 表不会被修改或删除。
+同名表会被拒绝而不会静默删除。已废弃且没有 API 的 `batchMsg` 表也会在验证后删除。
 
 迁移会拒绝 partial legacy schema、非法或重复 token、future version 和与已记录版本不一致的
-schema，不会自动“修好”未知结构。MariaDB DDL 会隐式提交，而本项目按要求不使用 advisory-lock SQL，
-因此首次迁移或版本升级时应只启动一个服务实例。数据库账号需要迁移所需的 DDL 与 DML 权限。
+schema，不会自动“修好”未知结构。MariaDB 没有 SQLite `PRAGMA user_version` 的等价机制，因此使用
+`auth_schema` 的唯一状态行同时记录版本、清理恢复状态，并通过 `FOR UPDATE` 串行数据迁移。MariaDB
+DDL 会隐式提交，状态行锁无法覆盖首次建表或版本升级 DDL，因此这些阶段应只启动一个服务实例。数据库
+账号需要迁移所需的 DDL 与 DML 权限。
 
 ## 构建与运行
 
