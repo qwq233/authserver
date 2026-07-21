@@ -74,6 +74,12 @@
 }
 -keep class io.ktor.client.engine.** implements io.ktor.client.HttpClientEngineContainer
 
+# Jansi native libraries access these JNI bridge classes and fields by name.
+-keep class org.fusesource.jansi.internal.CLibrary { *; }
+-keep class org.fusesource.jansi.internal.CLibrary$* { *; }
+-keep class org.fusesource.jansi.internal.Kernel32 { *; }
+-keep class org.fusesource.jansi.internal.Kernel32$* { *; }
+
 # kotlinx-datetime optional serialization bridge
 -dontwarn kotlinx.serialization.KSerializer
 -dontwarn kotlinx.serialization.Serializable

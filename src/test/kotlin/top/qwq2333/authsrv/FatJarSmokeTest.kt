@@ -22,6 +22,12 @@ private const val HISTORY_REQUEST = """{"uin":90001,"token":"test_root"}"""
 class FatJarSmokeTest {
     @Test
     fun optimizedJarRunsAgainstTestOnlyH2() {
+        Class.forName(
+            "org.fusesource.jansi.internal.CLibrary",
+            false,
+            javaClass.classLoader,
+        ).getDeclaredField("HAVE_ISATTY")
+
         val socket = ServerSocket(0)
         val port = socket.localPort
         socket.close()
