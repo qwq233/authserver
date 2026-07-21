@@ -50,8 +50,7 @@ dependencies {
     testImplementation(libs.junit)
     testImplementation(libs.ktor.server.test.host)
     testRuntimeOnly(libs.h2)
-
-    add("shadowR8", libs.r8)
+    shadowR8(libs.r8)
 }
 
 tasks.withType<Test>().configureEach {
@@ -85,11 +84,12 @@ tasks.named<ShadowJar>("shadowJar") {
         "module-info.class",
         "META-INF/versions/*/module-info.class",
         "META-INF/services/jakarta.servlet.ServletContainerInitializer",
+        "META-INF/services/io.ktor.server.config.ConfigLoader",
+        "META-INF/services/kotlin.reflect.jvm.internal.impl.builtins.BuiltInsLoader",
+        "META-INF/services/kotlin.reflect.jvm.internal.impl.km.internal.extensions.MetadataExtensions",
+        "META-INF/services/kotlin.reflect.jvm.internal.impl.resolve.ExternalOverridabilityCondition",
         "META-INF/proguard/**",
-        "META-INF/com.android.tools/proguard/**",
-        "META-INF/com.android.tools/r8/**",
-        "META-INF/com.android.tools/r8-from-*/**",
-        "META-INF/com.android.tools/r8-upto-*/**",
+        "META-INF/com.android.tools/**",
     )
     manifest {
         attributes(
@@ -100,11 +100,12 @@ tasks.named<ShadowJar>("shadowJar") {
     isPreserveFileTimestamps = false
     isReproducibleFileOrder = true
     minimize {
+        exclude(dependency("org.mariadb.jdbc:mariadb-java-client:.*"))
+        exclude(dependency("org.fusesource.jansi:jansi:.*"))
+        exclude(dependency("ch.qos.logback:logback-classic:.*"))
         r8 {
             enableOptimization()
-            keepRules.add(
-                providers.fileContents(layout.projectDirectory.file("r8-rules.pro")).asText,
-            )
+            keepRuleFiles.from(layout.projectDirectory.file("r8-rules.pro"))
         }
     }
 }
@@ -137,13 +138,29 @@ tasks.register("verifyFatJar") {
             check("META-INF/services/org.slf4j.spi.SLF4JServiceProvider" in entries)
             check("META-INF/services/org.jetbrains.exposed.v1.jdbc.DatabaseConnectionAutoRegistration" in entries)
             check("META-INF/services/io.ktor.serialization.kotlinx.KotlinxSerializationExtensionProvider" in entries)
+            jar.entries().asSequence()
+                .filter { it.name.startsWith("META-INF/services/") && !it.isDirectory }
+                .forEach { service ->
+                    val serviceType = service.name.removePrefix("META-INF/services/")
+                    if (!serviceType.startsWith("java.")) {
+                        check(serviceType.replace('.', '/') + ".class" in entries)
+                    }
+                    jar.getInputStream(service).bufferedReader().useLines { lines ->
+                        lines.map { it.substringBefore('#').trim() }
+                            .filter { it.isNotEmpty() }
+                            .forEach { provider ->
+                                check(provider.replace('.', '/') + ".class" in entries) {
+                                    "Missing ServiceLoader provider $provider declared by ${service.name}"
+                                }
+                            }
+                    }
+                }
             check("META-INF/services/jakarta.servlet.ServletContainerInitializer" !in entries)
             check(entries.none { it.startsWith("org/h2/") })
             check(entries.none { it.startsWith("com/alibaba/fastjson/") })
             check(entries.none { it.startsWith("com/google/gson/") })
             check(entries.none { it.startsWith("com/mysql/") })
             check(entries.none { it.startsWith("io/netty/") })
-            check(entries.none { it.startsWith("com/android/tools/r8/") })
             check(entries.none { it.endsWith(".SF") || it.endsWith(".RSA") || it.endsWith(".DSA") })
         }
         logger.lifecycle("Verified optimized fat JAR: ${file.absolutePath} (${file.length()} bytes)")
@@ -153,7 +170,7 @@ tasks.register("verifyFatJar") {
 val mainSourceSet = sourceSets.main.get()
 val testSourceSet = sourceSets.test.get()
 
-val fatJarTest by tasks.registering(Test::class) {
+val fatJarTest = tasks.register<Test>("fatJarTest") {
     group = "verification"
     description = "Runs API and database smoke tests against the optimized fat JAR."
     dependsOn(tasks.shadowJar, tasks.testClasses)

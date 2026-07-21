@@ -2,15 +2,18 @@ package top.qwq2333.authsrv
 
 import com.zaxxer.hikari.HikariConfig
 import com.zaxxer.hikari.HikariDataSource
+import org.mariadb.jdbc.Configuration
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
+import org.slf4j.LoggerFactory
 import java.net.ServerSocket
 import java.net.URI
 import java.net.http.HttpClient
 import java.net.http.HttpRequest
 import java.net.http.HttpResponse
 import java.time.Duration
+import java.util.Properties
 import java.util.UUID
 import java.util.regex.Pattern
 
@@ -21,12 +24,37 @@ private const val HISTORY_REQUEST = """{"uin":90001,"token":"test_root"}"""
 
 class FatJarSmokeTest {
     @Test
+    fun optimizedJarParsesMariaDbConnectionProperties() {
+        val config = Configuration.parse(
+            "jdbc:mariadb://127.0.0.1:3306/qn_auth",
+            Properties().apply {
+                setProperty("user", "authserver")
+                setProperty("password", "secret")
+                setProperty("connectTimeout", "1000")
+                setProperty("tcpKeepAlive", "true")
+                setProperty("tcpKeepIdle", "60")
+                setProperty("tcpKeepCount", "5")
+                setProperty("tcpKeepInterval", "10")
+            },
+        )
+        assertEquals(60, config.tcpKeepIdle())
+        assertEquals(5, config.tcpKeepCount())
+        assertEquals(10, config.tcpKeepInterval())
+        Class.forName("org.fusesource.jansi.internal.CLibrary", false, javaClass.classLoader)
+            .getDeclaredField("HAVE_ISATTY")
+    }
+
+    @Test
     fun optimizedJarRunsAgainstTestOnlyH2() {
-        Class.forName(
-            "org.fusesource.jansi.internal.CLibrary",
-            false,
-            javaClass.classLoader,
-        ).getDeclaredField("HAVE_ISATTY")
+        val loggerFactory = LoggerFactory.getILoggerFactory()
+        assertEquals("ch.qos.logback.classic.LoggerContext", loggerFactory.javaClass.name)
+        val rootLogger = loggerFactory.javaClass.getMethod("getLogger", String::class.java)
+            .invoke(loggerFactory, "ROOT")
+        val appenders = rootLogger.javaClass.getMethod("iteratorForAppenders").invoke(rootLogger) as Iterator<*>
+        assertTrue(appenders.hasNext())
+        val appender = requireValue(appenders.next())
+        assertEquals("ch.qos.logback.core.ConsoleAppender", appender.javaClass.name)
+        assertEquals(true, appender.javaClass.getMethod("isWithJansi").invoke(appender))
 
         val socket = ServerSocket(0)
         val port = socket.localPort
