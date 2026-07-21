@@ -44,8 +44,9 @@ class AuthServerTest {
     fun userContractUnderBothPrefixes() {
         listOf("", "/qa").forEach { prefix ->
             h2DataSource().use { dataSource ->
+                val service = AuthService(initializeDatabase(dataSource))
                 testApplication {
-                    application { installAuthServer(dataSource, Clock.System.now()) }
+                    application { installAuthServer(service, Clock.System.now()) }
 
                     val health = client.get(if (prefix.isEmpty()) "/" else "/qa")
                     assertEquals(HttpStatusCode.OK, health.status)
@@ -113,8 +114,9 @@ class AuthServerTest {
     fun adminRolesAndCardsUnderBothPrefixes() {
         listOf("", "/qa").forEach { prefix ->
             h2DataSource().use { dataSource ->
+                val service = AuthService(initializeDatabase(dataSource))
                 testApplication {
-                    application { installAuthServer(dataSource, Clock.System.now()) }
+                    application { installAuthServer(service, Clock.System.now()) }
 
                     assertCode(client.post("$prefix/admin") {
                         setBody("""{"desttoken":"child","nickname":"Child","token":"test_root"}""")
@@ -160,8 +162,9 @@ class AuthServerTest {
     @Test
     fun invalidBodiesReturnMatching400() {
         h2DataSource().use { dataSource ->
+            val service = AuthService(initializeDatabase(dataSource))
             testApplication {
-                application { installAuthServer(dataSource, Clock.System.now()) }
+                application { installAuthServer(service, Clock.System.now()) }
                 listOf(
                     "" to EMPTY_REQUEST_REASON,
                     "{" to INVALID_REQUEST_REASON,
@@ -180,12 +183,14 @@ class AuthServerTest {
     @Test
     fun failedLogWriteRollsBackUserMutation() {
         h2DataSource().use { dataSource ->
+            val database = initializeDatabase(dataSource)
+            val service = AuthService(database)
             testApplication {
-                application { installAuthServer(dataSource, Clock.System.now()) }
+                application { installAuthServer(service, Clock.System.now()) }
                 assertCode(client.post("/user") {
                     setBody("""{"uin":10001,"status":1,"token":"test_root","reason":"first"}""")
                 }, 200)
-                transaction(database(dataSource)) { SchemaUtils.drop(History) }
+                transaction(database) { SchemaUtils.drop(History) }
 
                 assertCode(client.post("/user") {
                     setBody("""{"uin":10001,"status":9,"token":"test_root","reason":"broken"}""")
@@ -232,10 +237,10 @@ class AuthServerTest {
     }
 
     @Test
-    fun legacySchemaMigratesDataAndPreservesRetiredBatchTable() {
+    fun legacySchemaMigratesDataAndDropsLegacyTables() {
         h2DataSource().use { dataSource ->
             createLegacySchema(dataSource)
-            initializeDatabase(dataSource)
+            val service = AuthService(initializeDatabase(dataSource))
 
             transaction(database(dataSource)) {
                 val user = Users.selectAll().single()
@@ -247,19 +252,19 @@ class AuthServerTest {
                 assertEquals(tokenDigest("test_root"), admin[Admins.tokenDigest])
                 assertEquals("root", admin[Admins.nickname])
                 assertEquals(1L, History.selectAll().single()[History.id])
-                assertEquals("legacy-card", Cards.selectAll().single()[Cards.cardMsg])
-                assertEquals("retained", LegacyBatchMessages.selectAll().single()[LegacyBatchMessages.batchMsg])
+                val card = Cards.selectAll().single()
+                assertEquals("legacy-card", card[Cards.cardMsg])
+                assertEquals("sendCard", card[Cards.type])
                 assertEquals(1, SchemaVersions.selectAll().single()[SchemaVersions.version])
                 assertFalse(SchemaVersions.selectAll().single()[SchemaVersions.legacyCleanupPending])
                 assertTrue(currentSchemaDifferences().isEmpty())
 
                 val tables = tableNames()
-                assertTrue("batchmsg" in tables)
-                assertFalse(setOf("user", "admin", "log", "card").any(tables::contains))
+                assertFalse(setOf("user", "admin", "log", "card", "batchmsg").any(tables::contains))
             }
 
             testApplication {
-                application { installAuthServer(dataSource, Clock.System.now()) }
+                application { installAuthServer(service, Clock.System.now()) }
                 assertUser(client.post("/user/query") {
                     setBody("""{"uin":10001}""")
                 }, status = 7, reason = "legacy-user")
@@ -274,6 +279,28 @@ class AuthServerTest {
                 }.json()["history"]!!.jsonArray
                 assertEquals(2, history.size)
                 assertEquals("2", history.last().jsonObject["id"]!!.jsonPrimitive.content)
+            }
+        }
+    }
+
+    @Test
+    fun previouslyRetainedBatchTableIsDropped() {
+        h2DataSource().use { dataSource ->
+            initializeDatabase(dataSource)
+            transaction(database(dataSource)) {
+                SchemaUtils.create(LegacyBatchMessages)
+                LegacyBatchMessages.insert {
+                    it[uin] = 10001
+                    it[batchMsg] = "retained"
+                    it[date] = LEGACY_TIME
+                }
+            }
+
+            initializeDatabase(dataSource)
+
+            transaction(database(dataSource)) {
+                assertFalse("batchmsg" in tableNames())
+                assertFalse(SchemaVersions.selectAll().single()[SchemaVersions.legacyCleanupPending])
             }
         }
     }
@@ -313,7 +340,7 @@ class AuthServerTest {
                 StringLegacyCards.insert {
                     it[uin] = "10001"
                     it[cardMsg] = "legacy-card"
-                    it[type] = "sendCard"
+                    it[type] = "copyCard"
                     it[date] = LEGACY_TIME
                 }
             }
@@ -329,7 +356,9 @@ class AuthServerTest {
                     )
                 }
                 assertEquals(10001L, History.selectAll().single()[History.uin])
-                assertEquals(10001L, Cards.selectAll().single()[Cards.uin])
+                val card = Cards.selectAll().single()
+                assertEquals(10001L, card[Cards.uin])
+                assertEquals("copyCard", card[Cards.type])
                 assertFalse(setOf("user", "admin", "log", "card").any(tableNames()::contains))
             }
         }
@@ -338,8 +367,9 @@ class AuthServerTest {
     @Test
     fun concurrentUserCreationKeepsAuditHistoryConsistent() {
         h2DataSource().use { dataSource ->
+            val service = AuthService(initializeDatabase(dataSource))
             testApplication {
-                application { installAuthServer(dataSource, Clock.System.now()) }
+                application { installAuthServer(service, Clock.System.now()) }
                 val responses = coroutineScope {
                     listOf(2, 3).map { status ->
                         async {
@@ -483,7 +513,7 @@ class AuthServerTest {
                 LegacyUsers,
                 LegacyAdmins,
                 LegacyHistory,
-                LegacyCards,
+                LegacyCardsWithoutType,
                 LegacyBatchMessages,
             )
             LegacyUsers.insert {
@@ -518,10 +548,9 @@ class AuthServerTest {
                 it[reason] = "legacy-user"
                 it[date] = LEGACY_TIME
             }
-            LegacyCards.insert {
+            LegacyCardsWithoutType.insert {
                 it[uin] = 10001
                 it[cardMsg] = "legacy-card"
-                it[type] = "sendCard"
                 it[date] = LEGACY_TIME
             }
             LegacyBatchMessages.insert {
@@ -616,6 +645,15 @@ class AuthServerTest {
         val uin = varchar("uin", 32)
         val cardMsg = largeText("cardmsg")
         val type = text("type")
+        val date = datetime("date")
+
+        override val primaryKey = PrimaryKey(id)
+    }
+
+    private object LegacyCardsWithoutType : Table("card") {
+        val id = integer("id").autoIncrement()
+        val uin = long("uin")
+        val cardMsg = largeText("cardmsg")
         val date = datetime("date")
 
         override val primaryKey = PrimaryKey(id)

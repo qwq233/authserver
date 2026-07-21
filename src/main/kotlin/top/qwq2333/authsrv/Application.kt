@@ -21,13 +21,11 @@ import io.ktor.server.routing.route
 import io.ktor.server.routing.routing
 import org.slf4j.LoggerFactory
 import java.util.Date
-import javax.sql.DataSource
 import kotlin.time.Clock
 import kotlin.time.Instant
 
-fun Application.installAuthServer(dataSource: DataSource, startedAt: Instant) {
+internal fun Application.installAuthServer(service: AuthService, startedAt: Instant) {
     val logger = LoggerFactory.getLogger("AuthServer")
-    val service = AuthService(initializeDatabase(dataSource))
     val counters = RequestCounters()
 
     install(ContentNegotiation) {

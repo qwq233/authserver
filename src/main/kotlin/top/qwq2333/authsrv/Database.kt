@@ -3,6 +3,7 @@ package top.qwq2333.authsrv
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import kotlinx.datetime.LocalDateTime
+import org.jetbrains.exposed.v1.core.Expression
 import org.jetbrains.exposed.v1.core.ResultRow
 import org.jetbrains.exposed.v1.core.SortOrder
 import org.jetbrains.exposed.v1.core.Table
@@ -19,10 +20,12 @@ import org.jetbrains.exposed.v1.jdbc.SchemaUtils
 import org.jetbrains.exposed.v1.jdbc.batchInsert
 import org.jetbrains.exposed.v1.jdbc.deleteWhere
 import org.jetbrains.exposed.v1.jdbc.insert
+import org.jetbrains.exposed.v1.jdbc.select
 import org.jetbrains.exposed.v1.jdbc.selectAll
 import org.jetbrains.exposed.v1.jdbc.transactions.suspendTransaction
 import org.jetbrains.exposed.v1.jdbc.transactions.transaction
 import org.jetbrains.exposed.v1.jdbc.update
+import org.jetbrains.exposed.v1.jdbc.vendors.currentDialectMetadata
 import org.jetbrains.exposed.v1.migration.jdbc.MigrationUtils
 import org.slf4j.LoggerFactory
 import java.security.MessageDigest
@@ -155,6 +158,7 @@ private object DatabaseSchema {
     private val currentTableNames = currentTables.mapTo(linkedSetOf()) { it.normalizedName }
     private val legacyTables = listOf(LegacyUsers, LegacyAdmins, LegacyHistory, LegacyCards)
     private val legacyTableNames = legacyTables.mapTo(linkedSetOf()) { it.normalizedName }
+    private val legacyCleanupTables = legacyTables + LegacyBatchMessages
 
     fun migrate(database: Database) {
         val createCurrentSchema = transaction(database) {
@@ -216,8 +220,7 @@ private object DatabaseSchema {
         val presentLegacyTables = tableNames.intersect(legacyTableNames)
         val migratedLegacy = presentLegacyTables == legacyTableNames
         if (migratedLegacy) {
-            validateLegacySchema()
-            migrateLegacyData()
+            migrateLegacyData(validateLegacySchema())
         }
 
         validateCurrentSchema()
@@ -257,11 +260,26 @@ private object DatabaseSchema {
         }
     }
 
-    private fun validateLegacySchema() {
+    private fun validateLegacySchema(): Boolean {
         // MariaDB legacy aliases and DATETIME precision vary by server version. A typed
         // Exposed projection validates the readable migration contract without rewriting it.
-        legacyTables.forEach { table -> table.selectAll().limit(1).toList() }
+        legacyTables
+            .filterNot { it === LegacyCards }
+            .forEach { table -> table.selectAll().limit(1).toList() }
+        val hasCardType = currentDialectMetadata.tableColumns(LegacyCards)
+            .getValue(LegacyCards)
+            .any { column -> column.name.equals(LegacyCards.type.name, ignoreCase = true) }
+        LegacyCards.select(legacyCardFields(hasCardType)).limit(1).toList()
         legacyAdminRows()
+        return hasCardType
+    }
+
+    private fun legacyCardFields(hasType: Boolean): List<Expression<*>> = buildList {
+        add(LegacyCards.id)
+        add(LegacyCards.uin)
+        add(LegacyCards.cardMsg)
+        if (hasType) add(LegacyCards.type)
+        add(LegacyCards.date)
     }
 
     private fun validateCurrentSchema() {
@@ -282,7 +300,7 @@ private object DatabaseSchema {
             withLogs = false,
         )
 
-    private fun migrateLegacyData() {
+    private fun migrateLegacyData(hasCardType: Boolean) {
         val admins = legacyAdminRows()
         copyUsers()
         Admins.batchInsert(admins, shouldReturnGeneratedValues = false) { admin ->
@@ -306,7 +324,7 @@ private object DatabaseSchema {
             check(migrated[Admins.lastUpdate] == legacy.lastUpdate)
         }
         copyHistory()
-        copyCards()
+        copyCards(hasCardType)
 
         check(Users.selectAll().count() == LegacyUsers.selectAll().count())
         check(Admins.selectAll().count() == LegacyAdmins.selectAll().count())
@@ -405,12 +423,13 @@ private object DatabaseSchema {
         } while (rows.size == MIGRATION_BATCH_SIZE)
     }
 
-    private fun copyCards() {
+    private fun copyCards(hasType: Boolean) {
         var cursor: Int? = null
+        val fields = legacyCardFields(hasType)
         do {
             val query = cursor?.let { value ->
-                LegacyCards.selectAll().where { LegacyCards.id greater value }
-            } ?: LegacyCards.selectAll()
+                LegacyCards.select(fields).where { LegacyCards.id greater value }
+            } ?: LegacyCards.select(fields)
             val rows = query.orderBy(LegacyCards.id to SortOrder.ASC)
                 .limit(MIGRATION_BATCH_SIZE)
                 .toList()
@@ -418,7 +437,7 @@ private object DatabaseSchema {
                 this[Cards.id] = row[LegacyCards.id].toLong()
                 this[Cards.uin] = row[LegacyCards.uin]
                 this[Cards.cardMsg] = row[LegacyCards.cardMsg]
-                this[Cards.type] = row[LegacyCards.type]
+                this[Cards.type] = if (hasType) row[LegacyCards.type] else SEND_CARD_TYPE
                 this[Cards.date] = row[LegacyCards.date]
             }
             val migrated = Cards.selectAll()
@@ -430,7 +449,7 @@ private object DatabaseSchema {
                 check(current[Cards.id] == legacy[LegacyCards.id].toLong())
                 check(current[Cards.uin] == legacy[LegacyCards.uin])
                 check(current[Cards.cardMsg] == legacy[LegacyCards.cardMsg])
-                check(current[Cards.type] == legacy[LegacyCards.type])
+                check(current[Cards.type] == if (hasType) legacy[LegacyCards.type] else SEND_CARD_TYPE)
                 check(current[Cards.date] == legacy[LegacyCards.date])
             }
             cursor = rows.lastOrNull()?.get(LegacyCards.id)
@@ -483,15 +502,19 @@ private object DatabaseSchema {
     private fun cleanupLegacyTables(database: Database) {
         transaction(database) {
             if (readVersion(tableNames()) != CURRENT_SCHEMA_VERSION) return@transaction
-            if (!isLegacyCleanupPending()) return@transaction
+            val cleanupPending = isLegacyCleanupPending()
             val existing = tableNames()
-            val obsolete = legacyTables.filter { it.normalizedName in existing }
+            val candidates = if (cleanupPending) legacyCleanupTables else listOf(LegacyBatchMessages)
+            val obsolete = candidates.filter { it.normalizedName in existing }
             if (obsolete.isNotEmpty()) SchemaUtils.drop(*obsolete.toTypedArray())
-            check(tableNames().intersect(legacyTableNames).isEmpty()) {
+            val remaining = tableNames()
+            check(obsolete.none { it.normalizedName in remaining }) {
                 "Legacy table cleanup did not complete"
             }
-            SchemaVersions.update({ SchemaVersions.version eq CURRENT_SCHEMA_VERSION }) {
-                it[SchemaVersions.legacyCleanupPending] = false
+            if (cleanupPending) {
+                SchemaVersions.update({ SchemaVersions.version eq CURRENT_SCHEMA_VERSION }) {
+                    it[SchemaVersions.legacyCleanupPending] = false
+                }
             }
         }
     }
@@ -648,7 +671,7 @@ internal class AuthService(private val database: Database) {
         Cards.insert {
             it[Cards.uin] = uin
             it[Cards.cardMsg] = message
-            it[Cards.type] = "sendCard"
+            it[Cards.type] = SEND_CARD_TYPE
             it[Cards.date] = CurrentDateTime
         }
         successResponse()
@@ -736,3 +759,4 @@ private const val MIGRATION_BATCH_SIZE = 1_000
 private const val TOKEN_DIGEST_LENGTH = 64
 private const val INITIAL_ADMIN_BYTES = 32
 private const val INITIAL_ADMIN_ENV = "AUTH_INITIAL_ADMIN_TOKEN"
+private const val SEND_CARD_TYPE = "sendCard"
